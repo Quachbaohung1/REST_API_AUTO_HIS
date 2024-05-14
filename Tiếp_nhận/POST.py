@@ -44,31 +44,31 @@ def create_patient_from_excel(row):
     Ethnic = "0" + str(int(row['Ethnic']))
     patient_data = {
         "PatientCode": "SimulatedCode",
-            "FullPatientCode": "SimulatedCode",
-            "FirstName": str(int(row['FirstName'])),
-            "LastName": row['LastName'],
-            "Dob": str(row['Dob']),
-            "Gender": int(row['Gender']),
-            "IdCardNo": IdCardNo,
-            "MobileNo": MobileNo,
-            "Nationality": str(row['Nationality']),
-            "Ethnic": Ethnic,
-            "Country": str(row['Country']),
-            "City": str(int(row['City'])),
-            "District": str(int(row['District'])),
-            "Ward": str(int(row['Ward'])),
-            "Address": str(row['Address']),
-            "Occupation": row['Occupation'],
-            "EmployerName": str(row['EmployerName']),
-            "EmployerAddr": str(row['EmployerAddr']),
-            "TaxCode": tax_code,
-            "RelativeName": str(row['RelativeName']),
-            "RelativeAddr": str(row['RelativeAddr']),
-            "RelativePhone": RelativePhone,
-            "RelativeType": row['RelativeType'],
-            "Status": row['Status'],
-            "FullName": full_name,
-            "FullAddress": str(row['FullAddress'])
+        "FullPatientCode": "SimulatedCode",
+        "FirstName": str(int(row['FirstName'])),
+        "LastName": row['LastName'],
+        "Dob": str(row['Dob']),
+        "Gender": int(row['Gender']),
+        "IdCardNo": IdCardNo,
+        "MobileNo": MobileNo,
+        "Nationality": str(row['Nationality']),
+        "Ethnic": Ethnic,
+        "Country": str(row['Country']),
+        "City": str(int(row['City'])),
+        "District": str(int(row['District'])),
+        "Ward": str(int(row['Ward'])),
+        "Address": str(row['Address']),
+        "Occupation": row['Occupation'],
+        "EmployerName": str(row['EmployerName']),
+        "EmployerAddr": str(row['EmployerAddr']),
+        "TaxCode": tax_code,
+        "RelativeName": str(row['RelativeName']),
+        "RelativeAddr": str(row['RelativeAddr']),
+        "RelativePhone": RelativePhone,
+        "RelativeType": row['RelativeType'],
+        "Status": row['Status'],
+        "FullName": full_name,
+        "FullAddress": str(row['FullAddress'])
     }
     return create_patient(patient_data)
 
@@ -180,14 +180,27 @@ def create_visit_from_excel(row, patient_id):
         del visit_data["InsCheckedMessage"]
         del visit_data["InsCheckedStatus"]
         del visit_data["InsCardNo"]
-    create_visit(visit_data, Formated_visit_on)
+    response_json = create_visit(visit_data, Formated_visit_on)
+    # Kiểm tra và trích xuất entryId từ phản hồi JSON
+    entry_id = None
+    if response_json and "entry" in response_json and "entryId" in response_json["entry"]:
+        entry_id = response_json["entry"]["entryId"]
+
+    # In giá trị
+    print("entryId:", entry_id)
+
+    # Return các giá trị
+    return entry_id
 
 def process_patient_from_excel():
     file_path = "D://HIS api automation/DataTest/Data_API_Tiếp_nhận.xlsx"
     excel_data = pd.read_excel(file_path, sheet_name="Sheet1")
+    entry_ids = []  # Danh sách để lưu các entry_id
     for index, row in excel_data.iterrows():
         patient_id = create_patient_from_excel(row)
         if int(row["InsBenefitType"]) == 2:
             create_insurance_from_excel(row, patient_id)
-        create_visit_from_excel(row, patient_id)
-
+        entry_id = create_visit_from_excel(row, patient_id)
+        entry_ids.append(entry_id)  # Lưu entry_id vào danh sách
+    print("entry_ids", entry_ids)
+    return entry_ids  # Trả về danh sách các entry_id
