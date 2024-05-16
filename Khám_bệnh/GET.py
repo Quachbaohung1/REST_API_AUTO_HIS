@@ -29,27 +29,32 @@ def check_patient_in_room():
     date = date_formatted()
     url = f"{base_url}/pms/Visits/VisitFullEntries/149?fromDate={date}&TxEntryStatus=1&ExcludedVisitAttr=Empty"
     headers = {"Authorization": auth_token}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    patient_ids = []  # Tạo danh sách
 
-    # Kiểm tra xem phản hồi là một danh sách hay một từ điển
-    response_data = response.json()
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        response_data = response.json()
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Failed to decode JSON: {e}")
+        return []
+
+    patient_ids = []
+
     if isinstance(response_data, list):
-        # Nếu là danh sách, lặp qua từng phần tử và truy cập vào thông tin cần thiết
         for item in response_data:
-            patient_id = item.get("patientId")  # Sử dụng get để tránh lỗi nếu "patientId" không tồn tại
-            if patient_id is not None:  # Kiểm tra xem patient_id có tồn tại không
+            patient_id = item.get("patientId")
+            if patient_id is not None:
                 patient_ids.append(patient_id)
                 print(patient_id)
     elif isinstance(response_data, dict):
-        # Nếu là từ điển, truy cập trực tiếp vào thông tin cần thiết
         patient_id = response_data.get("patientId")
-        if patient_id is not None:  # Kiểm tra xem patient_id có tồn tại không
+        if patient_id is not None:
             patient_ids.append(patient_id)
             print(patient_id)
     else:
-        # Xử lý trường hợp phản hồi không phải là danh sách hoặc từ điển
         print("Invalid response format")
 
     print("patient_ids", patient_ids)
@@ -73,101 +78,163 @@ def check_visit_enty():
 
 
 # Lấy thông tin bệnh nhân GetDeleted
-def check_information_patient():
-    from Khám_bệnh.POST import choose_patient
-    date_formatted()
-    visit_idas = choose_patient()
-    visit_idbs = []  # Tạo một danh sách để lưu trữ thông tin từ mỗi lượt thăm
-    for visit_ida in visit_idas:
-        url = f"{base_url}/pms/Visits/Id/{visit_ida}?isGetDeleted=False"
+def check_information_patient_initial():
+    visit_ids = check_visit_enty()
+    visit_idas = []
+    for visit_id in visit_ids:
+        url = f"{base_url}/pms/Visits/Id/{visit_id}?isGetDeleted=False"
         headers = {"Authorization": auth_token}
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        # Lặp qua danh sách các đối tượng JSON trong response.json()
-        visit_idb = response.json()["visitId"]  # Trích xuất visitId từ mỗi đối tượng
-        visit_idbs.append(visit_idb)
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            visit_json = response.json()
+            visit_id = visit_json["visitId"]
+            insBenefitType = int(visit_json.get("insBenefitType", 0))
+            if insBenefitType != 2:
+                print(f"Visit with visit_id {visit_id} does not have insBenefitType equal to 2.")
+                continue
+            visit_idas.append(visit_id)
+        except requests.RequestException as e:
+            print(f"Request failed: {e}")
+    print("visit_ids", visit_idas)
+    return visit_idas
 
-    print("visit_idbs", visit_idbs)
-    return visit_idbs
+
+def check_information_patient_subsequent():
+    visit_info_list = []  # Khởi tạo danh sách để lưu thông tin các lượt thăm
+    visitIds = get_to_update_initial()
+    if visitIds:
+        # Duyệt qua các visit_id trong danh sách thông tin
+        for visit_id in visitIds:
+            url = f"{base_url}/pms/Visits/Id/{visit_id}?isGetDeleted=False"
+            headers = {"Authorization": auth_token}
+
+            try:
+                response = requests.get(url, headers=headers)
+                response.raise_for_status()
+                response_json = response.json()
+                print("response_json: ", response_json)
+
+                # Kiểm tra xem response_json có phải là một danh sách JSON hay không
+                if isinstance(response_json, list):
+                    # Duyệt qua các phần tử trong response_json và tạo visit_info_dict
+                    for item in response_json:
+                        visit_info = {
+                            "visitId": int(item.get("visitId", 0)),
+                            "patient_id": int(item.get("patientId", 0)),
+                            "insBenefitType": int(item.get("insBenefitType", 0)),
+                            "insBenefitRatio": int(item.get("insBenefitRatio", 0)),
+                            "insCardId": int(item.get("insCardId", 0)) if item.get("insCardId") else None
+                        }
+                        visit_info_list.append(visit_info)  # Thêm thông tin vào danh sách
+                        print("visit_info_dict:", visit_info_list)
+                else:
+                    # Nếu response_json không phải là một danh sách JSON, thêm nó vào danh sách
+                    visit_info = {
+                        "visitId": int(response_json.get("visitId", 0)),
+                        "patient_id": int(response_json.get("patientId", 0)),
+                        "insBenefitType": int(response_json.get("insBenefitType", 0)),
+                        "insBenefitRatio": int(response_json.get("insBenefitRatio", 0)),
+                        "insCardId": int(response_json.get("insCardId", 0)) if response_json.get("insCardId") else None
+                    }
+                    visit_info_list.append(visit_info)  # Thêm thông tin vào danh sách
+                    print("visit_info_dict:", visit_info_list)
+
+            except requests.RequestException as e:
+                print(f"Request failed: {e}")
+    else:
+        print("Danh sách visitIds rỗng.")
+
+    # Trả về danh sách thông tin các lượt thăm dưới dạng JSON
+    return visit_info_list
+
 
 # Lấy thông tin bệnh nhân để update
-def get_to_update():
-    visit_idbs = check_information_patient()
-    all_info = []  # Tạo một danh sách để lưu trữ thông tin từ mỗi lượt thăm
-    for visit_idb in visit_idbs:
+first_initialization = True
+visit_idas_first = None
+def get_to_update_initial():
+    global first_initialization, patient_id, ins_card_id, all_info, visit_idas_first, patient_ids, ins_card_ids
+
+    # Khởi tạo danh sách patient_ids và ins_card_ids
+    visitIds = []
+
+    if first_initialization and visit_idas_first is None:
+        all_info = []  # Tạo một danh sách để lưu trữ thông tin từ mỗi lượt thăm
+        visit_idas_first = check_information_patient_initial()  # Gán giá trị cho visit_idas_first
+
+    # Sử dụng visit_idas_first cho lần lặp đầu tiên hoặc sử dụng giá trị được gán từ lần trước
+    visit_idas = visit_idas_first if first_initialization else visit_idas_first
+
+    for visit_idb in visit_idas:
         url = f"{base_url}/pms/VisitEntries/VisitId/{visit_idb}"
         headers = {"Authorization": auth_token}
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        response_json = response.json()
-        # In phản hồi JSON để kiểm tra cấu trúc
-        print("Response JSON:", response_json)
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            response_json = response.json()
 
-        # Kiểm tra xem phản hồi có phải là một từ điển hay một danh sách
-        if isinstance(response_json, dict):
-            response_list = [response_json]  # Đóng gói vào một danh sách để xử lý thống nhất
-        elif isinstance(response_json, list):
-            response_list = response_json
-        else:
-            print("Unexpected response format:", response_json)
-            continue
+            if first_initialization:
+                # Tạo danh sách thông tin từ từng lượt thăm và gộp vào danh sách all_info
+                all_info.extend([
+                    {
+                        "entryId": int(item.get("entryId")),
+                        "visitId": int(item.get("visitId")),
+                        "medServiceId": int(item.get("medServiceId")),
+                        "wardUnitId": int(item.get("wardUnitId")),
+                        "createOn": item.get("createOn"),
+                        "createById": int(item.get("createById")),
+                        "status": int(item.get("status")),
+                        "insBenefitType": int(item.get("insBenefitType", 0)),
+                        "insBenefitRatio": int(item.get("insBenefitRatio", 0)),
+                        "priceId": int(item.get("priceId")),
+                        "qmsNo": item.get("qmsNo"),
+                        "ticketId": int(item.get("ticketId")),
+                        "createByWardUnitId": int(item.get("createByWardUnitId")),
+                        "dxByStaffId": item.get("dxByStaffId"),
+                        "dxICD": item.get("dxICD"),
+                        "dxText": item.get("dxText"),
+                        "patient_id": int(item.get("patientId", 0)),
+                        "insCardId": int(item.get("insCardId", 0))
+                    }
+                    for item in response_json
+                ])
+            else:
+                # Chỉ lấy patientId từ lần gọi thứ hai
+                for item in response_json:
+                    visitId = int(item.get("visitId", 0))
+                    # Thêm patient_id vào danh sách patient_ids
+                    visitIds.append(visitId)
+                    print("visitIds:", visitIds)
 
-        # Lặp qua các phần tử trong danh sách để trích xuất thông tin
-        for item in response_list:
-            info = {
-                "entryId": int(item["entryId"]),
-                "visitId": int(item["visitId"]),
-                "MedServiceId": int(item["medServiceId"]),
-                "WardUnitId": int(item["wardUnitId"]),
-                "CreateOn": item["createOn"],
-                "CreateById": int(item["createById"]),
-                "Status": int(item["status"]),
-                "InsBenefitType": int(item["insBenefitType"]),
-                "InsBenefitRatio": int(item["insBenefitRatio"]),
-                "PriceId": int(item["priceId"]),
-                "QmsNo": item["qmsNo"],
-                "TicketId": int(item["ticketId"]),
-                "CreateByWardUnitId": int(item["createByWardUnitId"])
-            }
-            all_info.append(info)  # Thêm thông tin vào danh sách all_info
+        except requests.RequestException as e:
+            print(f"Lỗi khi thực hiện yêu cầu: {e}")
 
-            # In giá trị (có thể bỏ qua hoặc giữ lại cho mục đích debug)
-            print("entryId:", info["entryId"])
-            print("visitId:", info["visitId"])
-            print("medServiceId:", info["MedServiceId"])
-            print("wardUnitId:", info["WardUnitId"])
-            print("createById:", info["CreateById"])
-            print("status:", info["Status"])
-            print("createOn:", info["CreateOn"])
-            print("insBenefitType:", info["InsBenefitType"])
-            print("insBenefitRatio:", info["InsBenefitRatio"])
-            print("priceId:", info["PriceId"])
-            print("qmsNo:", info["QmsNo"])
-            print("ticketId:", info["TicketId"])
-            print("createByWardUnitId:", info["CreateByWardUnitId"])
+    if first_initialization:
+        first_initialization = False  # Đánh dấu lần khởi tạo đầu tiên đã hoàn thành
+        return all_info
+    else:
+        return visitIds
 
-    return all_info
-
-
-
-# Lấy thông tin txVisit
-def get_information_txvisit():
-    # Gọi hàm để lấy tất cả thông tin của bệnh nhân
-    all_patient_info = check_information_patient()
-    # Rút trích entryId từ kết quả trả về của hàm check_information_patient()
-    visitId = all_patient_info[1]  # Ví dụ: Giả sử entryId là phần tử đầu tiên trong tuple
-    url = f"{base_url}/pms/Visits/Id/{visitId}?isGetDeleted=False"
+#
+def get_data_by_entry_id(entryId):
+    entryIds = []
+    url = f"{base_url}/cis/TxVisits/{entryId}?attribute=2"
     headers = {"Authorization": auth_token}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    # Chỉ lấy các giá trị quan trọng từ phản hồi JSON
     response_json = response.json()
-    InsBenefitType = response_json.get("InsBenefitType")
-    InsBenefitRatio = response_json.get("InsBenefitRatio")
-    InsCardId = response_json.get("InsCardId")
-    # In giá trị
-    print("InsBenefitType:", InsBenefitType)
-    print("InsBenefitRatio:", InsBenefitRatio)
-    print("InsCardId:", InsCardId)
-    return (InsBenefitType, InsBenefitRatio, InsCardId)
+    print("response_json:", response_json)
+    # Lặp qua danh sách các đối tượng JSON trong response.json()
+    entryIdb = response.json()["visitEntryId"]
+    entryIds.append(entryIdb)
+    print("entryIds:", entryIds)
+    return entryIds
+
+# isLoadItem=True
+def set_true(PatientId):
+    url = f"{base_url}/cis/LabExams/LoadAllByPatientId/{PatientId}?isLoadItem=True"
+    headers = {"Authorization": auth_token}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
 

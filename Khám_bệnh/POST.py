@@ -40,16 +40,37 @@ def choose_patient():
 
 
 # Mở màn hình chỉ định dịch vụ
-def start_service_designation():
-    from Khám_bệnh.GET import check_information_patient
-    url = f"{base_url}/pms/VisitEntries/Ids?wardUnitId="
-    headers = {"Authorization": auth_token}
-    all_patient_info = check_information_patient()
-    entryId = all_patient_info[0]
-    data = [entryId]
-    response = requests.post(url, json=data, headers=headers)
-    response.raise_for_status()
-    return response.json()
+def start_service_designation(entry_data):
+    all_infoa = []
+    for entryId in entry_data:
+        url = f"{base_url}/pms/VisitEntries/Ids?wardUnitId="
+        headers = {"Authorization": auth_token}
+        data = [entryId]
+        response = requests.post(url, json=data, headers=headers)
+        response.raise_for_status()
+        response_json = response.json()
+        # In phản hồi JSON để kiểm tra cấu trúc
+        print("Response JSON:", response_json)
+
+        # Lặp qua từng từ điển trong danh sách
+        for item in response_json:
+            # Tạo một danh sách con chứa các giá trị
+            info = {
+                "onDate": item.get("onDate"),
+                "dxByStaffId": int(item.get("dxByStaffId")),
+                "dxICD": str(item.get("dxICD")),
+                "dxText": str(item.get("dxText")),
+                "entryId": int(item.get("entryId")),
+                "wardUnitId": int(item.get("wardUnitId")),
+                "insBenefitType": int(item.get("insBenefitType")),
+                "insBenefitRatio": int(item.get("insBenefitRatio")),
+            }
+            # Thêm danh sách con vào danh sách all_info
+            all_infoa.append(info)
+
+            print("all_infoa:", all_infoa)
+
+    return all_infoa
 
 
 # Chỉ định dịch vụ
@@ -58,164 +79,191 @@ def create_service_designation(data):
     headers = {"Authorization": auth_token}
     response = requests.post(url, json=data, headers=headers)
     response.raise_for_status()
-    return response.json()["labExId"]
+    labExId = response.json()["labExId"]
+    print("LabExId:", labExId)  # In ra labExId
+    return labExId
 
 
 # Dữ liệu của chỉ định dịch vụ
-def data_of_create_service_designation(row):
+def data_of_create_service_designation(row, all_infoa):
+    from Khám_bệnh.GET import check_information_patient_subsequent, set_true
+    all_info = check_information_patient_subsequent()
+
     # Xử lý các giá trị null
     def handle_null(value):
         return str(value) if not pd.isna(value) else ''
 
-    (onDate, dxByStaffId, dxICD, dxText, entryId, wardUnitId) = start_service_designation()
-    (InsBenefitType, InsBenefitRatio, InsCardId) = KB_GET.get_information_txvisit()
+    # Lấy thông tin từ all_info
+    for visit_info in all_info:
+        PatientId = visit_info["patient_id"]
+        InsCardId = visit_info["insCardId"]
 
-    service_data = {
-        "PatientId": handle_null(row['PatientId']),
-        "RefNo": handle_null(row['RefNo']),
-        "OnDate": onDate,
-        "LabReqById": dxByStaffId,
-        "LabReqNotes": handle_null(row['LabReqNotes']),
-        "DxICD": dxICD,
-        "DxText": dxText,
-        "Attribute": int(row['Attribute']),
-        "FrVisitEntryId": entryId,
-        "CreateOn": KB_GET.date_formatted(),
-        "CreateById": dxByStaffId,
-        "Status": int(row['Status']),
-        "WardUnitId": wardUnitId,
-        "ServiceName": handle_null(row['ServiceName']),
-        "LabExamItems": [
-            {
-                "LabExId": int(row['LabExId']),
-                "MedServiceId": int(row['MedServiceId']),
-                "PriceId": int(row['PriceId']),
-                "InsBenefitType": InsBenefitType,
-                "InsBenefitRatio": InsBenefitRatio,
-                "InsCardId": InsCardId,
-                "Qty": float(row['Qty']),
-                "Price": float(row['Price']),
-                "InsPrice": float(row['InsPrice']),
-                "InsPriceRatio": int(row['InsPriceRatio']),
-                "Amt": float(row['InsPrice']),
-                "Attribute": int(row['Attribute']),
-                "ByProviderId": int(row['ByProviderId']),
-                "DiscAmtSeq": int(row['DiscAmtSeq']),
-                "MedServiceTypeL0": int(row['MedServiceTypeL0']),
-                "MedServiceTypeL2": int(row['MedServiceTypeL2']),
-                "MedServiceTypeL3": int(row['MedServiceTypeL3']),
-                "NonSubclinical": handle_null(row['NonSubclinical']),
-                "TypeL0Code": handle_null(row['TypeL0Code']),
-                "ByProviderCode": handle_null(row['ByProviderCode']),
-                "ByProviderName": handle_null(row['ByProviderName']),
-                "ServiceGroupName": handle_null(row['ServiceGroupName']),
-                "ServiceTypeL3Name": handle_null(row['ServiceTypeL3Name']),
-                "ServiceCode": handle_null(row['ServiceCode']),
-                "ServiceName": handle_null(row['ServiceName']),
-                "InsBenefitTypeName": handle_null(row['InsBenefitTypeName']),
-                "ReqDate": handle_null(row['ReqDate']),
-                "AttrString": handle_null(row['AttrString']),
-                "PaidAttrString": handle_null(row['PaidAttrString']),
-                "ServiceTypeOrderIndex": int(row['ServiceTypeOrderIndex']),
-                "MedItemType": int(row['MedItemType']),
-                "MedItem": handle_null(row['MedItem']),
-                "Checked": handle_null(row['Checked']),
+        # Truyền PatientId vào hàm set_true()
+        set_true(PatientId)
+
+        for info in all_infoa:
+            onDate = info.get("onDate", "")
+            dxByStaffId = info.get("dxByStaffId", "")
+            dxICD = info.get("dxICD", "")
+            dxText = info.get("dxText", "")
+            entryId = info.get("entryId", "")
+            wardUnitId = info.get("wardUnitId", "")
+            InsBenefitType = info.get("insBenefitType", 0)
+            InsBenefitRatio = info.get("insBenefitRatio", 0)
+
+            # Chuyển đổi giá trị "NonSubclinical" sang kiểu boolean
+            NonSubclinical = False if str(row['NonSubclinical']).lower() == 'false' else True
+
+            service_data = {
+                "PatientId": PatientId,
+                "RefNo": handle_null(row['RefNo']),
                 "OnDate": onDate,
-                "TotalInvoiceAmtRound": handle_null(row['TotalInvoiceAmtRound']),
-                "TotalReceiptAmtRound": handle_null(row['TotalReceiptAmtRound']),
-                "PtAmt": float(row['PtAmt']),
-                "PtAmtRound": float(row['PtAmtRound']),
-                "PtAmtPaid": float(row['PtAmtPaid']),
-                "PtCoPayAmt": float(row['PtCoPayAmt']),
-                "PtCoPayAmtRound": float(row['PtCoPayAmtRound']),
-                "InsAmt": float(row['InsAmt']),
-                "InsAmtRound": float(row['InsAmtRound']),
-                "DiscAmt": float(row['DiscAmt']),
-                "ReqBy": handle_null(row['ReqBy'])
+                "LabReqById": dxByStaffId,
+                "LabReqNotes": handle_null(row['LabReqNotes']),
+                "DxICD": dxICD,
+                "DxText": dxText,
+                "Attribute": int(row['Attribute']),
+                "FrVisitEntryId": entryId,
+                "CreateOn": onDate,
+                "CreateById": dxByStaffId,
+                "Status": int(row['Status']),
+                "WardUnitId": wardUnitId,
+                "ServiceName": handle_null(row['ServiceName']),
+                "LabExamItems": [
+                    {
+                        "LabExId": int(row['LabExId']),
+                        "MedServiceId": int(row['MedServiceId']),
+                        "PriceId": int(row['PriceId']),
+                        "InsBenefitType": InsBenefitType,
+                        "InsBenefitRatio": InsBenefitRatio,
+                        "InsCardId": InsCardId,
+                        "Qty": float(row['Qty']),
+                        "Price": float(row['Price']),
+                        "InsPrice": float(row['InsPrice']),
+                        "InsPriceRatio": int(row['InsPriceRatio']),
+                        "Amt": float(row['InsPrice']),
+                        "Attribute": int(row['Attribute']),
+                        "ByProviderId": int(row['ByProviderId']),
+                        "DiscAmtSeq": int(row['DiscAmtSeq']),
+                        "MedServiceTypeL0": int(row['MedServiceTypeL0']),
+                        "MedServiceTypeL2": int(row['MedServiceTypeL2']),
+                        "MedServiceTypeL3": int(row['MedServiceTypeL3']),
+                        "NonSubclinical": NonSubclinical,
+                        "TypeL0Code": handle_null(row['TypeL0Code']),
+                        "ByProviderCode": handle_null(row['ByProviderCode']),
+                        "ByProviderName": handle_null(row['ByProviderName']),
+                        "ServiceGroupName": handle_null(row['ServiceGroupName']),
+                        "ServiceTypeL3Name": handle_null(row['ServiceTypeL3Name']),
+                        "ServiceCode": handle_null(row['ServiceCode']),
+                        "ServiceName": handle_null(row['ServiceName']),
+                        "InsBenefitTypeName": handle_null(row['InsBenefitTypeName']),
+                        "ReqDate": handle_null(row['ReqDate']),
+                        "AttrString": handle_null(row['AttrString']),
+                        "PaidAttrString": handle_null(row['PaidAttrString']),
+                        "ServiceTypeOrderIndex": int(row['ServiceTypeOrderIndex']),
+                        "MedItemType": int(row['MedItemType']),
+                        "MedItem": handle_null(row['MedItem']),
+                        "Checked": handle_null(row['Checked']),
+                        "OnDate": onDate,
+                        "TotalInvoiceAmtRound": handle_null(row['TotalInvoiceAmtRound']),
+                        "TotalReceiptAmtRound": handle_null(row['TotalReceiptAmtRound']),
+                        "PtAmt": float(row['PtAmt']),
+                        "PtAmtRound": float(row['PtAmtRound']),
+                        "PtAmtPaid": float(row['PtAmtPaid']),
+                        "PtCoPayAmt": float(row['PtCoPayAmt']),
+                        "PtCoPayAmtRound": float(row['PtCoPayAmtRound']),
+                        "InsAmt": float(row['InsAmt']),
+                        "InsAmtRound": float(row['InsAmtRound']),
+                        "DiscAmt": float(row['DiscAmt']),
+                        "ReqBy": handle_null(row['ReqBy'])
+                    }
+                ],
+                "ItemI0": {
+                    "LabExId": int(row['LabExId']),
+                    "MedServiceId": int(row['MedServiceId']),
+                    "PriceId": int(row['PriceId']),
+                    "InsBenefitType": InsBenefitType,
+                    "InsBenefitRatio": InsBenefitRatio,
+                    "InsCardId": InsCardId,
+                    "Qty": float(row['Qty']),
+                    "Price": float(row['Price']),
+                    "InsPrice": float(row['InsPrice']),
+                    "InsPriceRatio": int(row['InsPriceRatio']),
+                    "Amt": float(row['InsPrice']),
+                    "Attribute": int(row['Attribute']),
+                    "ByProviderId": int(row['ByProviderId']),
+                    "DiscAmtSeq": int(row['DiscAmtSeq']),
+                    "MedServiceTypeL0": int(row['MedServiceTypeL0']),
+                    "MedServiceTypeL2": int(row['MedServiceTypeL2']),
+                    "MedServiceTypeL3": int(row['MedServiceTypeL3']),
+                    "NonSubclinical": NonSubclinical,
+                    "TypeL0Code": handle_null(row['TypeL0Code']),
+                    "ByProviderCode": handle_null(row['ByProviderCode']),
+                    "ByProviderName": handle_null(row['ByProviderName']),
+                    "ServiceGroupName": handle_null(row['ServiceGroupName']),
+                    "ServiceTypeL3Name": handle_null(row['ServiceTypeL3Name']),
+                    "ServiceCode": handle_null(row['ServiceCode']),
+                    "ServiceName": handle_null(row['ServiceName']),
+                    "InsBenefitTypeName": handle_null(row['InsBenefitTypeName']),
+                    "ReqDate": handle_null(row['ReqDate']),
+                    "AttrString": handle_null(row['AttrString']),
+                    "PaidAttrString": handle_null(row['PaidAttrString']),
+                    "ServiceTypeOrderIndex": int(row['ServiceTypeOrderIndex']),
+                    "MedItemType": int(row['MedItemType']),
+                    "MedItem": handle_null(row['MedItem']),
+                    "Checked": handle_null(row['Checked']),
+                    "OnDate": onDate,
+                    "TotalInvoiceAmtRound": handle_null(row['TotalInvoiceAmtRound']),
+                    "TotalReceiptAmtRound": handle_null(row['TotalReceiptAmtRound']),
+                    "PtAmt": float(row['PtAmt']),
+                    "PtAmtRound": float(row['PtAmtRound']),
+                    "PtAmtPaid": float(row['PtAmtPaid']),
+                    "PtCoPayAmt": float(row['PtCoPayAmt']),
+                    "PtCoPayAmtRound": float(row['PtCoPayAmtRound']),
+                    "InsAmt": float(row['InsAmt']),
+                    "InsAmtRound": float(row['InsAmtRound']),
+                    "DiscAmt": float(row['DiscAmt']),
+                    "ReqBy": handle_null(row['ReqBy'])
+                },
+                "FullAddress": handle_null(row['FullAddress'])
             }
-        ],
-        "ItemI0": {
-            "LabExId": int(row['LabExId']),
-            "MedServiceId": int(row['MedServiceId']),
-            "PriceId": int(row['PriceId']),
-            "InsBenefitType": InsBenefitType,
-            "InsBenefitRatio": InsBenefitRatio,
-            "InsCardId": InsCardId,
-            "Qty": float(row['Qty']),
-            "Price": float(row['Price']),
-            "InsPrice": float(row['InsPrice']),
-            "InsPriceRatio": int(row['InsPriceRatio']),
-            "Amt": float(row['InsPrice']),
-            "Attribute": int(row['Attribute']),
-            "ByProviderId": int(row['ByProviderId']),
-            "DiscAmtSeq": int(row['DiscAmtSeq']),
-            "MedServiceTypeL0": int(row['MedServiceTypeL0']),
-            "MedServiceTypeL2": int(row['MedServiceTypeL2']),
-            "MedServiceTypeL3": int(row['MedServiceTypeL3']),
-            "NonSubclinical": handle_null(row['NonSubclinical']),
-            "TypeL0Code": handle_null(row['TypeL0Code']),
-            "ByProviderCode": handle_null(row['ByProviderCode']),
-            "ByProviderName": handle_null(row['ByProviderName']),
-            "ServiceGroupName": handle_null(row['ServiceGroupName']),
-            "ServiceTypeL3Name": handle_null(row['ServiceTypeL3Name']),
-            "ServiceCode": handle_null(row['ServiceCode']),
-            "ServiceName": handle_null(row['ServiceName']),
-            "InsBenefitTypeName": handle_null(row['InsBenefitTypeName']),
-            "ReqDate": handle_null(row['ReqDate']),
-            "AttrString": handle_null(row['AttrString']),
-            "PaidAttrString": handle_null(row['PaidAttrString']),
-            "ServiceTypeOrderIndex": int(row['ServiceTypeOrderIndex']),
-            "MedItemType": int(row['MedItemType']),
-            "MedItem": handle_null(row['MedItem']),
-            "Checked": handle_null(row['Checked']),
-            "OnDate": onDate,
-            "TotalInvoiceAmtRound": handle_null(row['TotalInvoiceAmtRound']),
-            "TotalReceiptAmtRound": handle_null(row['TotalReceiptAmtRound']),
-            "PtAmt": float(row['PtAmt']),
-            "PtAmtRound": float(row['PtAmtRound']),
-            "PtAmtPaid": float(row['PtAmtPaid']),
-            "PtCoPayAmt": float(row['PtCoPayAmt']),
-            "PtCoPayAmtRound": float(row['PtCoPayAmtRound']),
-            "InsAmt": float(row['InsAmt']),
-            "InsAmtRound": float(row['InsAmtRound']),
-            "DiscAmt": float(row['DiscAmt']),
-            "ReqBy": handle_null(row['ReqBy'])
-        },
-        "FullAddress": handle_null(row['FullAddress'])
-    }
-    create_service_designation(service_data)
-    return service_data
-
+            labExId = create_service_designation(service_data)
+            return labExId
 
 # Kiểm tra chỉ định dịch vụ
-def check_service_designation(row):
+def check_service_designation(row, all_infoa):
     url = f"{base_url}/cis/LabExamItems/LabExamIds?ExcludedAttribute=&serviceTypeL0=&isLoadDelete=False"
     headers = {"Authorization": auth_token}
-    labExId = data_of_create_service_designation(row)
-    data = [labExId]
-    response = requests.post(url, json=data, headers=headers)
-    response.raise_for_status()
-    return response.json()["labExId"]
 
+    # Get the labExId from data_of_create_service_designation
+    labExIds = data_of_create_service_designation(row, all_infoa)
 
-def process_from_visit_service_designation():
-    file_path = "D://HIS api automation/DataTest/Data_API_Khám_bệnh.xlsx"
-    excel_data = pd.read_excel(file_path, sheet_name="Sheet1")
-    for index, row in excel_data.iterrows():
-        check_service_designation(row)
+    if isinstance(labExIds, int):
+        labExIds = [labExIds]
 
+    for labExId in labExIds:
+        data = [labExId]
+        # Thực hiện yêu cầu POST để kiểm tra service designation
+        response = requests.post(url, json=data, headers=headers)
+        response.raise_for_status()
+
+        # In và trả về JSON phản hồi để kiểm tra và xác minh
+        response_json = response.json()
+        print("response_json", response_json)
+
+        return response_json
 
 # Call
 
 def process_test():
     from Khám_bệnh.PUT import update_information_patient_from_excel
+    # from Khám_bệnh.GET import get_information_patient
     file_path = "C:\\Users\\Thanh Truc\\Desktop\\Book1.xlsx"
     excel_data = pd.read_excel(file_path, sheet_name="Sheet1")
+    # Thông tin cần thiết cho get_information_patient
     for index, row in excel_data.iterrows():
         create_information_patient()
         update_information_patient_from_excel(row)
-        start_service_designation()
-
 
 
 process_test()
