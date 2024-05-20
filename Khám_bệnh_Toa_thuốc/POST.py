@@ -1,0 +1,103 @@
+import requests
+import pandas as pd
+
+
+# Base url
+base_url = "http://115.79.31.186:1096"
+
+# Auth token
+auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
+
+
+# Lấy thông tin tất cả các bệnh nhân
+def create_information_patient():
+    from Khám_bệnh_CDDV.GET import check_patient_in_room
+    patient_ids = check_patient_in_room()
+    url = f"{base_url}/pms/Patients/PatientIds"
+    headers = {"Authorization": auth_token}
+    data = patient_ids
+    response = requests.post(url, json=data, headers=headers)
+    response.raise_for_status()
+
+
+# Chọn bệnh nhân
+def choose_patient():
+    from Khám_bệnh_CDDV.GET import check_visit_enty
+    visit_ids = check_visit_enty()
+    visit_idas = []
+    for visit_id in visit_ids:
+        url = f"{base_url}/pms/VisitEntries/VisitIds"
+        headers = {"Authorization": auth_token}
+        data = [visit_id]
+        response = requests.post(url, json=data, headers=headers)
+        response.raise_for_status()
+        # Lặp qua danh sách các đối tượng JSON trong response.json()
+        for item in response.json():
+            visit_ida = item["visitId"]  # Trích xuất visitId từ mỗi đối tượng
+            visit_idas.append(visit_ida)
+    print("visit_idas", visit_idas)
+    return visit_idas
+
+# Chọn thuốc
+def choose_medicine(data):
+    url = f"{base_url}/ims/InvNowAvailables/GetInventoriesForBooking/?isInsurrance=True&name=&medAI=&fullName=&LengthLimit=20&fullNameOrCode=False&attribute=&isNoLoadItems=False"
+    headers = {"Authorization": auth_token}
+    response = requests.post(url, json=data, headers=headers)
+    response.raise_for_status()
+    response_json = response.json()
+    return response_json
+
+# Data thuốc
+def data_medicine(row):
+    def handle_null(value, default=None, to_type=int):
+        return to_type(value) if not pd.isna(value) else default
+
+    # Chuyển đổi giá trị "IgnoreStoreId", "IgnoreLotId", "IgnoreInvSource" sang kiểu boolean
+    IgnoreStoreId = False if str(row['IgnoreStoreId']).lower() == 'false' else True
+    IgnoreLotId = False if str(row['IgnoreLotId']).lower() == 'false' else True
+    IgnoreInvSource = False if str(row['IgnoreInvSource']).lower() == 'false' else True
+
+    medicine_data = {
+        "StoreIds": [
+            handle_null(row['StoreIds'])
+        ],
+        "InvSources": handle_null(row['InvSources'], default=None, to_type=int),
+        "LotIds": handle_null(row['LotIds'], default=None, to_type=int),
+        "ItemIds": [
+            handle_null(row['ItemIds'])
+        ],
+        "IgnoreItemIds": handle_null(row['IgnoreItemIds'], default=None, to_type=int),
+        "VouStatus": handle_null(row['VouStatus'], default=None, to_type=int),
+        "IgnoreStoreId": IgnoreStoreId,
+        "IgnoreLotId": IgnoreLotId,
+        "IgnoreInvSource": IgnoreInvSource,
+        "ItemCatIds": handle_null(row['ItemCatIds'], default=None, to_type=int),
+        "ItemTypes": handle_null(row['ItemTypes'], default=None, to_type=int),
+        "BidIds": handle_null(row['BidIds'], default=None, to_type=int),
+        "ProviderIds": handle_null(row['ProviderIds'], default=None, to_type=int),
+        "IgnoreItemCatIds": handle_null(row['IgnoreItemCatIds'], default=None, to_type=int),
+        "TakeOnlyGroupInStoreHospital": handle_null(row['TakeOnlyGroupInStoreHospital'], default=None, to_type=int),
+        "TakeOnlyItemIns": handle_null(row['TakeOnlyItemIns'], default=None, to_type=int)
+    }
+
+    medicine = choose_medicine(medicine_data)
+    return medicine
+
+# Call
+def process_test():
+    from Khám_bệnh_Toa_thuốc.PUT import update_information_patient_from_excel
+    # from Khám_bệnh.GET import get_information_patient
+    file_path = "D://HIS api automation/DataTest/Data_API_Thuốc.xlsx"
+    excel_data = pd.read_excel(file_path, sheet_name="Sheet1")
+    # Thông tin cần thiết cho get_information_patient
+    for index, row in excel_data.iterrows():
+        create_information_patient()
+        # First run
+        is_first_run = True
+        update_information_patient_from_excel(row, is_first_run)
+        data_medicine(row)
+        # Second run
+        is_first_run = False
+        update_information_patient_from_excel(row, is_first_run)
+
+process_test()

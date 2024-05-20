@@ -86,8 +86,8 @@ def prepare_information_data(row, info):
 
 
 def update_information_patient_from_excel(row):
-    from Khám_bệnh.GET import get_to_update_initial, get_data_by_entry_id
-    from Khám_bệnh.POST import start_service_designation, data_of_create_service_designation, check_service_designation
+    from Khám_bệnh_CDDV.GET import get_to_update_initial, get_data_by_entry_id
+    from Khám_bệnh_CDDV.POST import start_service_designation, data_of_create_service_designation, check_service_designation
     all_info = get_to_update_initial()
     print("all_infoa:",all_info)
     if len(all_info) == 0:

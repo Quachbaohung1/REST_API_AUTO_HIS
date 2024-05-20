@@ -11,7 +11,7 @@ auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6Ij
 
 # Lấy thông tin tất cả các bệnh nhân
 def create_information_patient():
-    from Khám_bệnh.GET import check_patient_in_room
+    from Khám_bệnh_CDDV.GET import check_patient_in_room
     patient_ids = check_patient_in_room()
     url = f"{base_url}/pms/Patients/PatientIds"
     headers = {"Authorization": auth_token}
@@ -22,7 +22,7 @@ def create_information_patient():
 
 # Chọn bệnh nhân
 def choose_patient():
-    from Khám_bệnh.GET import check_visit_enty
+    from Khám_bệnh_CDDV.GET import check_visit_enty
     visit_ids = check_visit_enty()
     visit_idas = []
     for visit_id in visit_ids:
@@ -86,7 +86,7 @@ def create_service_designation(data):
 
 # Dữ liệu của chỉ định dịch vụ
 def data_of_create_service_designation(row, all_infoa):
-    from Khám_bệnh.GET import check_information_patient_subsequent, set_true
+    from Khám_bệnh_CDDV.GET import check_information_patient_subsequent, set_true
     all_info = check_information_patient_subsequent()
 
     # Xử lý các giá trị null
@@ -256,9 +256,9 @@ def check_service_designation(row, all_infoa):
 # Call
 
 def process_test():
-    from Khám_bệnh.PUT import update_information_patient_from_excel
+    from Khám_bệnh_CDDV.PUT import update_information_patient_from_excel
     # from Khám_bệnh.GET import get_information_patient
-    file_path = "C:\\Users\\Thanh Truc\\Desktop\\Book1.xlsx"
+    file_path = "D://HIS api automation/DataTest/Data_API_Khám_bệnh.xlsx"
     excel_data = pd.read_excel(file_path, sheet_name="Sheet1")
     # Thông tin cần thiết cho get_information_patient
     for index, row in excel_data.iterrows():
