@@ -87,7 +87,7 @@ def prepare_information_data(row, info):
 
 def update_information_patient_from_excel(row):
     from Khám_bệnh_CDDV.GET import get_to_update_initial, get_data_by_entry_id
-    from Khám_bệnh_CDDV.POST import start_service_designation, data_of_create_service_designation, check_service_designation
+    from Khám_bệnh_CDDV.POST import start_service_designation, data_of_create_service_designation
     all_info = get_to_update_initial()
     print("all_infoa:",all_info)
     if len(all_info) == 0:
@@ -100,5 +100,7 @@ def update_information_patient_from_excel(row):
         # Truyền entry_data vào hàm start_service_designation
         start_service_designation(entry_data)
         all_infoa = start_service_designation(entry_data)
-        data_of_create_service_designation(row, all_infoa)
-        check_service_designation(row, all_infoa)
+        frVisitEntryId = data_of_create_service_designation(row, all_infoa)
+        print("frVisitEntryId:  ", frVisitEntryId)
+        return frVisitEntryId
+        # check_service_designation(row, all_infoa)

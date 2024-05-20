@@ -79,9 +79,9 @@ def create_service_designation(data):
     headers = {"Authorization": auth_token}
     response = requests.post(url, json=data, headers=headers)
     response.raise_for_status()
-    labExId = response.json()["labExId"]
-    print("LabExId:", labExId)  # In ra labExId
-    return labExId
+    frVisitEntryId = response.json()["frVisitEntryId"]
+    print("frVisitEntryId:", frVisitEntryId)  # In ra labExId
+    return frVisitEntryId
 
 
 # Dữ liệu của chỉ định dịch vụ
@@ -227,35 +227,35 @@ def data_of_create_service_designation(row, all_infoa):
                 },
                 "FullAddress": handle_null(row['FullAddress'])
             }
-            labExId = create_service_designation(service_data)
-            return labExId
+            frVisitEntryId = create_service_designation(service_data)
+            return frVisitEntryId
 
 # Kiểm tra chỉ định dịch vụ
-def check_service_designation(row, all_infoa):
-    url = f"{base_url}/cis/LabExamItems/LabExamIds?ExcludedAttribute=&serviceTypeL0=&isLoadDelete=False"
-    headers = {"Authorization": auth_token}
-
-    # Get the labExId from data_of_create_service_designation
-    labExIds = data_of_create_service_designation(row, all_infoa)
-
-    if isinstance(labExIds, int):
-        labExIds = [labExIds]
-
-    for labExId in labExIds:
-        data = [labExId]
-        # Thực hiện yêu cầu POST để kiểm tra service designation
-        response = requests.post(url, json=data, headers=headers)
-        response.raise_for_status()
-
-        # In và trả về JSON phản hồi để kiểm tra và xác minh
-        response_json = response.json()
-        print("response_json", response_json)
-
-        return response_json
+# def check_service_designation(row, all_infoa):
+#     url = f"{base_url}/cis/LabExamItems/LabExamIds?ExcludedAttribute=&serviceTypeL0=&isLoadDelete=False"
+#     headers = {"Authorization": auth_token}
+#
+#     # Get the labExId from data_of_create_service_designation
+#     labExIds = data_of_create_service_designation(row, all_infoa)
+#
+#     if isinstance(labExIds, int):
+#         labExIds = [labExIds]
+#
+#     for labExId in labExIds:
+#         data = [labExId]
+#         # Thực hiện yêu cầu POST để kiểm tra service designation
+#         response = requests.post(url, json=data, headers=headers)
+#         response.raise_for_status()
+#
+#         # In và trả về JSON phản hồi để kiểm tra và xác minh
+#         response_json = response.json()
+#         print("response_json", response_json)
+#
+#         return response_json
 
 # Call
 
-def process_test():
+def process_kb_CDDV():
     from Khám_bệnh_CDDV.PUT import update_information_patient_from_excel
     # from Khám_bệnh.GET import get_information_patient
     file_path = "D://HIS api automation/DataTest/Data_API_Khám_bệnh.xlsx"
@@ -263,7 +263,6 @@ def process_test():
     # Thông tin cần thiết cho get_information_patient
     for index, row in excel_data.iterrows():
         create_information_patient()
-        update_information_patient_from_excel(row)
+        frVisitEntryId = update_information_patient_from_excel(row)
+        return frVisitEntryId
 
-
-process_test()
