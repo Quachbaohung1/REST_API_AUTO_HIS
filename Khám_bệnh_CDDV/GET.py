@@ -73,7 +73,7 @@ class EntryIdManager:
         self.current_index = 0  # Reset chỉ số
 
     def get_next_entry_id(self):
-        if not self.entry_ids or self.current_index >= len(self.entry_ids):
+        if not self.entry_ids or self.current_index > len(self.entry_ids):
             print("No more entry_ids available.")
             return None
 
@@ -129,9 +129,9 @@ def check_information_patient_initial():
     return visit_idas
 
 
-def check_information_patient_subsequent(all_info):
+def check_information_patient_subsequent():
     visit_info_list = []  # Khởi tạo danh sách để lưu thông tin các lượt thăm
-    visitIds = get_visit_ids(all_info)
+    visitIds = get_visit_ids()
     if visitIds:
         # Duyệt qua các visit_id trong danh sách thông tin
         for visit_id in visitIds:
@@ -145,26 +145,15 @@ def check_information_patient_subsequent(all_info):
                 print("response_json: ", response_json)
 
                 # Kiểm tra xem response_json có phải là một danh sách JSON hay không
-                if isinstance(response_json, list):
-                    # Duyệt qua các phần tử trong response_json và tạo visit_info_dict
-                    for item in response_json:
-                        visit_info = {
-                            "visitId": int(item.get("visitId", 0)),
-                            "patient_id": int(item.get("patientId", 0)),
-                            "insBenefitType": int(item.get("insBenefitType", 0)),
-                            "insBenefitRatio": int(item.get("insBenefitRatio", 0)),
-                            "insCardId": int(item.get("insCardId", 0)) if item.get("insCardId") else None
-                        }
-                        visit_info_list.append(visit_info)  # Thêm thông tin vào danh sách
-                        print("visit_info_dict:", visit_info_list)
-                else:
-                    # Nếu response_json không phải là một danh sách JSON, thêm nó vào danh sách
+                visit_items = response_json if isinstance(response_json, list) else [response_json]
+
+                for item in visit_items:
                     visit_info = {
-                        "visitId": int(response_json.get("visitId", 0)),
-                        "patient_id": int(response_json.get("patientId", 0)),
-                        "insBenefitType": int(response_json.get("insBenefitType", 0)),
-                        "insBenefitRatio": int(response_json.get("insBenefitRatio", 0)),
-                        "insCardId": int(response_json.get("insCardId", 0)) if response_json.get("insCardId") else None
+                        "visitId": int(item.get("visitId", 0)),
+                        "patient_id": int(item.get("patientId", 0)),
+                        "insBenefitType": int(item.get("insBenefitType", 0)),
+                        "insBenefitRatio": int(item.get("insBenefitRatio", 0)),
+                        "insCardId": int(item.get("insCardId", 0)) if item.get("insCardId") else None
                     }
                     visit_info_list.append(visit_info)  # Thêm thông tin vào danh sách
                     print("visit_info_dict:", visit_info_list)
@@ -182,9 +171,15 @@ def check_information_patient_subsequent(all_info):
 #     print("Processed visit_ids:", all_info)
 
 # Lấy thông tin bệnh nhân để update
-def get_all_info():
-    all_info = []
+# Biến toàn cục để lưu all_info
+_global_all_info = None
 
+def get_all_info():
+    global _global_all_info
+    if _global_all_info is not None:
+        return _global_all_info
+
+    all_info = []
     visit_idas = check_information_patient_initial()
 
     for visit_id in visit_idas:
@@ -222,13 +217,20 @@ def get_all_info():
         except requests.RequestException as e:
             print(f"Lỗi khi thực hiện yêu cầu: {e}")
 
-    return all_info
+    _global_all_info = all_info
+    print("_global_all_info:", _global_all_info)
+    return _global_all_info if _global_all_info else []
 
+def get_visit_ids():
+    global _global_all_info
+    print(_global_all_info)
+    if _global_all_info is None:
+        print("get_all_info must be called before get_visit_ids.")
+        return []
 
-def get_visit_ids(all_info):
     visit_ids = []
 
-    for info in all_info:
+    for info in _global_all_info:
         visit_id = info.get("visitId")
         url = f"{base_url}/pms/Visits/Id/{visit_id}?isGetDeleted=False"
         headers = {"Authorization": auth_token}

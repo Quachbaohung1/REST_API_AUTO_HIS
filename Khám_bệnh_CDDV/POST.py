@@ -87,16 +87,16 @@ def create_service_designation(data):
 
 
 # Dữ liệu của chỉ định dịch vụ
-def data_of_create_service_designation(row, all_infoa, all_info):
+def data_of_create_service_designation(row, all_infoa):
     from Khám_bệnh_CDDV.GET import check_information_patient_subsequent, set_true
-    check_information_patient_subsequent(all_info)
+    visit_info_list = check_information_patient_subsequent()
 
     # Xử lý các giá trị null
     def handle_null(value):
         return str(value) if not pd.isna(value) else ''
 
     # Lấy thông tin từ all_info
-    for visit_info in all_info:
+    for visit_info in visit_info_list:
         PatientId = visit_info["patient_id"]
         InsCardId = visit_info["insCardId"]
 
@@ -293,3 +293,5 @@ def process_kb_CDDV():
     for index, row in additional_data.iterrows():
         create_information_patient()
         update_information_patient_from_excel(row)
+
+process_kb_CDDV()
