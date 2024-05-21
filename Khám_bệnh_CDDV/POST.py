@@ -1,5 +1,7 @@
 import requests
 import pandas as pd
+import re
+from copy import deepcopy
 
 
 # Base url
@@ -85,9 +87,9 @@ def create_service_designation(data):
 
 
 # Dữ liệu của chỉ định dịch vụ
-def data_of_create_service_designation(row, all_infoa):
+def data_of_create_service_designation(row, all_infoa, all_info):
     from Khám_bệnh_CDDV.GET import check_information_patient_subsequent, set_true
-    all_info = check_information_patient_subsequent()
+    check_information_patient_subsequent(all_info)
 
     # Xử lý các giá trị null
     def handle_null(value):
@@ -253,16 +255,41 @@ def data_of_create_service_designation(row, all_infoa):
 #
 #         return response_json
 
-# Call
+
+
+def generate_additional_data(original_data, num_records):
+    new_data = []
+
+    for _ in range(num_records):
+        for _, row in original_data.iterrows():
+            new_row = deepcopy(row)
+
+            new_data.append(new_row)
+
+    return pd.DataFrame(new_data)
+
+def write_data_to_excel(file_path, sheet_name, data):
+    # Ghi dữ liệu vào tệp Excel và ghi đè lên dữ liệu hiện có
+    with pd.ExcelWriter(file_path, engine='openpyxl', mode='w') as writer:
+        data.to_excel(writer, sheet_name=sheet_name, index=False)
+
 
 def process_kb_CDDV():
     from Khám_bệnh_CDDV.PUT import update_information_patient_from_excel
-    # from Khám_bệnh.GET import get_information_patient
     file_path = "D://HIS api automation/DataTest/Data_API_Khám_bệnh.xlsx"
-    excel_data = pd.read_excel(file_path, sheet_name="Sheet1")
-    # Thông tin cần thiết cho get_information_patient
-    for index, row in excel_data.iterrows():
-        create_information_patient()
-        frVisitEntryId = update_information_patient_from_excel(row)
-        return frVisitEntryId
+    sheet_name = "Sheet1"
 
+    # Đọc dữ liệu gốc từ tệp Excel
+    excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
+
+    # Tạo dữ liệu bổ sung và ghi vào file Excel
+    num_records_to_add = 5  # Số dòng dữ liệu bổ sung
+    additional_data = generate_additional_data(excel_data.tail(1), num_records_to_add)
+    write_data_to_excel(file_path, sheet_name, additional_data)
+
+    # Đọc lại dữ liệu đã ghi vào file
+    additional_data = pd.read_excel(file_path, sheet_name=sheet_name)
+    # Thông tin
+    for index, row in additional_data.iterrows():
+        create_information_patient()
+        update_information_patient_from_excel(row)

@@ -62,19 +62,48 @@ def check_patient_in_room():
 
 
 # Hiển thị entry_visit
+class EntryIdManager:
+    def __init__(self):
+        self.entry_ids = []
+        self.current_index = 0
+
+    def load_entry_ids(self):
+        from Tiếp_nhận.POST import process_patient_from_excel
+        self.entry_ids = process_patient_from_excel()  # Lấy danh sách entry_id từ file Excel
+        self.current_index = 0  # Reset chỉ số
+
+    def get_next_entry_id(self):
+        if not self.entry_ids or self.current_index >= len(self.entry_ids):
+            print("No more entry_ids available.")
+            return None
+
+        entry_id = self.entry_ids[self.current_index]
+        self.current_index += 1
+        return entry_id
+
+# Tạo instance của EntryIdManager và load danh sách entry_ids
+entry_id_manager = EntryIdManager()
+entry_id_manager.load_entry_ids()
+
 def check_visit_enty():
-    from Tiếp_nhận.POST import process_patient_from_excel
-    entry_ids = process_patient_from_excel()  # Lấy danh sách entry_id từ file Excel
-    visit_ids = []
-    for entry_id in entry_ids:
+    entry_id = entry_id_manager.get_next_entry_id()
+    if entry_id is None:
+        return []
+
+    try:
         url = f"{base_url}/pms/VisitEntries/{entry_id}"
         headers = {"Authorization": auth_token}
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         visit_id = response.json()["visitId"]
-        visit_ids.append(visit_id)
-    print("visit_ids", visit_ids)
-    return visit_ids
+        print("visit_id:", visit_id)
+        return [visit_id]
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Failed to decode JSON: {e}")
+        return []
 
 
 # Lấy thông tin bệnh nhân GetDeleted
@@ -100,9 +129,9 @@ def check_information_patient_initial():
     return visit_idas
 
 
-def check_information_patient_subsequent():
+def check_information_patient_subsequent(all_info):
     visit_info_list = []  # Khởi tạo danh sách để lưu thông tin các lượt thăm
-    visitIds = get_to_update_initial()
+    visitIds = get_visit_ids(all_info)
     if visitIds:
         # Duyệt qua các visit_id trong danh sách thông tin
         for visit_id in visitIds:
@@ -148,74 +177,76 @@ def check_information_patient_subsequent():
     # Trả về danh sách thông tin các lượt thăm dưới dạng JSON
     return visit_info_list
 
+# for _ in range(5):  # Giả sử có 5 lần gọi để kiểm tra sự tái khởi tạo của entry_ids
+#     all_info = check_information_patient_subsequent()
+#     print("Processed visit_ids:", all_info)
 
 # Lấy thông tin bệnh nhân để update
-first_initialization = True
-visit_idas_first = None
-def get_to_update_initial():
-    global first_initialization, patient_id, ins_card_id, all_info, visit_idas_first, patient_ids, ins_card_ids
+def get_all_info():
+    all_info = []
 
-    # Khởi tạo danh sách patient_ids và ins_card_ids
-    visitIds = []
+    visit_idas = check_information_patient_initial()
 
-    if first_initialization and visit_idas_first is None:
-        all_info = []  # Tạo một danh sách để lưu trữ thông tin từ mỗi lượt thăm
-        visit_idas_first = check_information_patient_initial()  # Gán giá trị cho visit_idas_first
-
-    # Sử dụng visit_idas_first cho lần lặp đầu tiên hoặc sử dụng giá trị được gán từ lần trước
-    visit_idas = visit_idas_first if first_initialization else visit_idas_first
-
-    for visit_idb in visit_idas:
-        url = f"{base_url}/pms/VisitEntries/VisitId/{visit_idb}"
+    for visit_id in visit_idas:
+        url = f"{base_url}/pms/VisitEntries/VisitId/{visit_id}"
         headers = {"Authorization": auth_token}
         try:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
             response_json = response.json()
 
-            if first_initialization:
-                # Tạo danh sách thông tin từ từng lượt thăm và gộp vào danh sách all_info
-                all_info.extend([
-                    {
-                        "entryId": int(item.get("entryId")),
-                        "visitId": int(item.get("visitId")),
-                        "medServiceId": int(item.get("medServiceId")),
-                        "wardUnitId": int(item.get("wardUnitId")),
-                        "createOn": item.get("createOn"),
-                        "createById": int(item.get("createById")),
-                        "status": int(item.get("status")),
-                        "insBenefitType": int(item.get("insBenefitType", 0)),
-                        "insBenefitRatio": int(item.get("insBenefitRatio", 0)),
-                        "priceId": int(item.get("priceId")),
-                        "qmsNo": item.get("qmsNo"),
-                        "ticketId": int(item.get("ticketId")),
-                        "createByWardUnitId": int(item.get("createByWardUnitId")),
-                        "dxByStaffId": item.get("dxByStaffId"),
-                        "dxICD": item.get("dxICD"),
-                        "dxText": item.get("dxText"),
-                        "patient_id": int(item.get("patientId", 0)),
-                        "insCardId": int(item.get("insCardId", 0))
-                    }
-                    for item in response_json
-                ])
-            else:
-                # Chỉ lấy patientId từ lần gọi thứ hai
-                for item in response_json:
-                    visitId = int(item.get("visitId", 0))
-                    # Thêm patient_id vào danh sách patient_ids
-                    visitIds.append(visitId)
-                    print("visitIds:", visitIds)
+            all_info.extend([
+                {
+                    "entryId": int(item.get("entryId")),
+                    "visitId": int(item.get("visitId")),
+                    "medServiceId": int(item.get("medServiceId")),
+                    "wardUnitId": int(item.get("wardUnitId")),
+                    "createOn": item.get("createOn"),
+                    "createById": int(item.get("createById")),
+                    "status": int(item.get("status")),
+                    "insBenefitType": int(item.get("insBenefitType", 0)),
+                    "insBenefitRatio": int(item.get("insBenefitRatio", 0)),
+                    "priceId": int(item.get("priceId")),
+                    "qmsNo": item.get("qmsNo"),
+                    "ticketId": int(item.get("ticketId")),
+                    "createByWardUnitId": int(item.get("createByWardUnitId")),
+                    "dxByStaffId": item.get("dxByStaffId"),
+                    "dxICD": item.get("dxICD"),
+                    "dxText": item.get("dxText"),
+                    "patient_id": int(item.get("patientId", 0)),
+                    "insCardId": int(item.get("insCardId", 0))
+                }
+                for item in response_json
+            ])
 
         except requests.RequestException as e:
             print(f"Lỗi khi thực hiện yêu cầu: {e}")
 
-    if first_initialization:
-        first_initialization = False  # Đánh dấu lần khởi tạo đầu tiên đã hoàn thành
-        return all_info
-    else:
-        return visitIds
+    return all_info
 
-#
+
+def get_visit_ids(all_info):
+    visit_ids = []
+
+    for info in all_info:
+        visit_id = info.get("visitId")
+        url = f"{base_url}/pms/Visits/Id/{visit_id}?isGetDeleted=False"
+        headers = {"Authorization": auth_token}
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            visit_json = response.json()
+            visit_id = visit_json["visitId"]
+            insBenefitType = int(visit_json.get("insBenefitType", 0))
+            if insBenefitType != 2:
+                print(f"Visit with visit_id {visit_id} does not have insBenefitType equal to 2.")
+                continue
+            visit_ids.append(visit_id)
+        except requests.RequestException as e:
+            print(f"Request failed: {e}")
+
+    return visit_ids
+
 def get_data_by_entry_id(entryId):
     entryIds = []
     url = f"{base_url}/cis/TxVisits/{entryId}?attribute=2"

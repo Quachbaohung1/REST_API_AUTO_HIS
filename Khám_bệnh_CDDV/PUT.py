@@ -86,21 +86,20 @@ def prepare_information_data(row, info):
 
 
 def update_information_patient_from_excel(row):
-    from Khám_bệnh_CDDV.GET import get_to_update_initial, get_data_by_entry_id
+    from Khám_bệnh_CDDV.GET import get_all_info, get_data_by_entry_id
     from Khám_bệnh_CDDV.POST import start_service_designation, data_of_create_service_designation
-    all_info = get_to_update_initial()
+    all_info = get_all_info()
     print("all_infoa:",all_info)
     if len(all_info) == 0:
         print("No information about patients.")
-        return
+        return []
+    frVisitEntryIds = []
     for info in all_info:
         information_data, entryId = prepare_information_data(row, info)
         update_information_patient(all_info, information_data)
         entry_data = get_data_by_entry_id(entryId)
-        # Truyền entry_data vào hàm start_service_designation
-        start_service_designation(entry_data)
         all_infoa = start_service_designation(entry_data)
-        frVisitEntryId = data_of_create_service_designation(row, all_infoa)
-        print("frVisitEntryId:  ", frVisitEntryId)
-        return frVisitEntryId
-        # check_service_designation(row, all_infoa)
+        frVisitEntryId = data_of_create_service_designation(row, all_infoa, all_info)
+        frVisitEntryIds.append(frVisitEntryId)
+    print("frVisitEntryIds:  ", frVisitEntryIds)
+    return frVisitEntryIds
