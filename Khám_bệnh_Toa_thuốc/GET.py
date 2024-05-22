@@ -2,8 +2,6 @@ import datetime
 import requests
 import json
 
-
-
 # Base url
 base_url = "http://115.79.31.186:1096"
 # Auth token
@@ -72,13 +70,14 @@ class EntryIdManager:
         self.current_index = 0  # Reset chỉ số
 
     def get_next_entry_id(self):
-        if not self.entry_ids or self.current_index > len(self.entry_ids):
+        if not self.entry_ids or self.current_index >= len(self.entry_ids):
             print("No more entry_ids available.")
             return None
 
         entry_id = self.entry_ids[self.current_index]
         self.current_index += 1
         return entry_id
+
 
 # Tạo instance của EntryIdManager và load danh sách entry_ids
 entry_id_manager = EntryIdManager()
@@ -130,9 +129,9 @@ def check_information_patient_initial():
     return visit_idas
 
 
-def check_information_patient_subsequent():
+def check_information_patient_subsequent(all_info):
     visit_info_list = []  # Khởi tạo danh sách để lưu thông tin các lượt thăm
-    visitIds = get_to_update_initial()
+    visitIds = get_visit_ids(all_info)
     if visitIds:
         # Duyệt qua các visit_id trong danh sách thông tin
         for visit_id in visitIds:
@@ -146,26 +145,15 @@ def check_information_patient_subsequent():
                 print("response_json: ", response_json)
 
                 # Kiểm tra xem response_json có phải là một danh sách JSON hay không
-                if isinstance(response_json, list):
-                    # Duyệt qua các phần tử trong response_json và tạo visit_info_dict
-                    for item in response_json:
-                        visit_info = {
-                            "visitId": int(item.get("visitId", 0)),
-                            "patient_id": int(item.get("patientId", 0)),
-                            "insBenefitType": int(item.get("insBenefitType", 0)),
-                            "insBenefitRatio": int(item.get("insBenefitRatio", 0)),
-                            "insCardId": int(item.get("insCardId", 0)) if item.get("insCardId") else None
-                        }
-                        visit_info_list.append(visit_info)  # Thêm thông tin vào danh sách
-                        print("visit_info_dict:", visit_info_list)
-                else:
-                    # Nếu response_json không phải là một danh sách JSON, thêm nó vào danh sách
+                visit_items = response_json if isinstance(response_json, list) else [response_json]
+
+                for item in visit_items:
                     visit_info = {
-                        "visitId": int(response_json.get("visitId", 0)),
-                        "patient_id": int(response_json.get("patientId", 0)),
-                        "insBenefitType": int(response_json.get("insBenefitType", 0)),
-                        "insBenefitRatio": int(response_json.get("insBenefitRatio", 0)),
-                        "insCardId": int(response_json.get("insCardId", 0)) if response_json.get("insCardId") else None
+                        "visitId": int(item.get("visitId", 0)),
+                        "patient_id": int(item.get("patientId", 0)),
+                        "insBenefitType": int(item.get("insBenefitType", 0)),
+                        "insBenefitRatio": int(item.get("insBenefitRatio", 0)),
+                        "insCardId": int(item.get("insCardId", 0)) if item.get("insCardId") else None
                     }
                     visit_info_list.append(visit_info)  # Thêm thông tin vào danh sách
                     print("visit_info_dict:", visit_info_list)
@@ -180,21 +168,12 @@ def check_information_patient_subsequent():
 
 
 # Lấy thông tin bệnh nhân để update
-first_initialization = True
-visit_idas_first = None
-def get_to_update_initial():
-    global first_initialization, visit_idas_first
-
+def get_all_info():
     all_info = []
+    visit_idas = check_information_patient_initial()
 
-    if first_initialization and visit_idas_first is None:
-        all_info = []
-        visit_idas_first = check_information_patient_initial()
-
-    visit_idas = visit_idas_first if first_initialization else visit_idas_first
-
-    for visit_idb in visit_idas:
-        url = f"{base_url}/pms/VisitEntries/VisitId/{visit_idb}"
+    for visit_id in visit_idas:
+        url = f"{base_url}/pms/VisitEntries/VisitId/{visit_id}"
         headers = {"Authorization": auth_token}
         try:
             response = requests.get(url, headers=headers)
@@ -228,4 +207,46 @@ def get_to_update_initial():
         except requests.RequestException as e:
             print(f"Lỗi khi thực hiện yêu cầu: {e}")
 
+    print("all_info:", all_info)
+    return all_info
+
+
+def get_visit_ids(all_info):
+    for info in all_info:
+        visit_id = info.get("visitId")
+        url = f"{base_url}/pms/Visits/Id/{visit_id}?isGetDeleted=False"
+        headers = {"Authorization": auth_token}
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            response_json = response.json()
+
+            all_info.extend([
+                {
+                    "entryId": int(item.get("entryId")),
+                    "visitId": int(item.get("visitId")),
+                    "medServiceId": int(item.get("medServiceId")),
+                    "wardUnitId": int(item.get("wardUnitId")),
+                    "createOn": item.get("createOn"),
+                    "createById": int(item.get("createById")),
+                    "status": int(item.get("status")),
+                    "insBenefitType": int(item.get("insBenefitType", 0)),
+                    "insBenefitRatio": int(item.get("insBenefitRatio", 0)),
+                    "priceId": int(item.get("priceId")),
+                    "qmsNo": item.get("qmsNo"),
+                    "ticketId": int(item.get("ticketId")),
+                    "createByWardUnitId": int(item.get("createByWardUnitId")),
+                    "dxByStaffId": item.get("dxByStaffId"),
+                    "dxICD": item.get("dxICD"),
+                    "dxText": item.get("dxText"),
+                    "patient_id": int(item.get("patientId", 0)),
+                    "insCardId": int(item.get("insCardId", 0))
+                }
+                for item in response_json
+            ])
+
+        except requests.RequestException as e:
+            print(f"Lỗi khi thực hiện yêu cầu: {e}")
+
+    print("all_info:", all_info)
     return all_info

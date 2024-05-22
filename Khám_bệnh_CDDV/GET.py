@@ -166,10 +166,6 @@ def check_information_patient_subsequent(all_info):
     # Trả về danh sách thông tin các lượt thăm dưới dạng JSON
     return visit_info_list
 
-# for _ in range(5):  # Giả sử có 5 lần gọi để kiểm tra sự tái khởi tạo của entry_ids
-#     all_info = check_information_patient_subsequent()
-#     print("Processed visit_ids:", all_info)
-
 # Lấy thông tin bệnh nhân để update
 
 def get_all_info():

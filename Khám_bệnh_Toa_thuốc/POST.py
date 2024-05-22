@@ -102,7 +102,7 @@ def write_data_to_excel(file_path, sheet_name, data):
 
 # Call
 def process_test():
-    from Khám_bệnh_Toa_thuốc.PUT import update_information_patient_from_excel
+    from Khám_bệnh_Toa_thuốc.PUT import update_medicine_patient_from_excel
     # from Khám_bệnh.GET import get_information_patient
     file_path = "D://HIS api automation/DataTest/Data_API_Thuốc.xlsx"
     sheet_name = "Sheet1"
@@ -111,7 +111,7 @@ def process_test():
     excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
 
     # Tạo dữ liệu bổ sung và ghi vào file Excel
-    num_records_to_add = 5  # Số dòng dữ liệu bổ sung
+    num_records_to_add = 2  # Số dòng dữ liệu bổ sung
     additional_data = generate_additional_data(excel_data.tail(1), num_records_to_add)
     write_data_to_excel(file_path, sheet_name, additional_data)
 
@@ -120,14 +120,6 @@ def process_test():
 
     # Thông tin cần thiết cho get_information_patient
     for index, row in additional_data.iterrows():
-        # Chọn bệnh nhân
-        choose_patient()
-        # First run
-        is_first_run = True
-        update_information_patient_from_excel(row, is_first_run)
-        data_medicine(row)
-        # Second run
-        is_first_run = False
-        update_information_patient_from_excel(row, is_first_run)
+        update_medicine_patient_from_excel(row)
 
 process_test()
