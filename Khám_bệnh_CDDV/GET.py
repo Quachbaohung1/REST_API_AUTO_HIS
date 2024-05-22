@@ -73,7 +73,7 @@ class EntryIdManager:
         self.current_index = 0  # Reset chỉ số
 
     def get_next_entry_id(self):
-        if not self.entry_ids or self.current_index > len(self.entry_ids):
+        if not self.entry_ids or self.current_index >= len(self.entry_ids):
             print("No more entry_ids available.")
             return None
 
@@ -129,9 +129,9 @@ def check_information_patient_initial():
     return visit_idas
 
 
-def check_information_patient_subsequent():
+def check_information_patient_subsequent(all_info):
     visit_info_list = []  # Khởi tạo danh sách để lưu thông tin các lượt thăm
-    visitIds = get_visit_ids()
+    visitIds = get_visit_ids(all_info)
     if visitIds:
         # Duyệt qua các visit_id trong danh sách thông tin
         for visit_id in visitIds:
@@ -171,13 +171,8 @@ def check_information_patient_subsequent():
 #     print("Processed visit_ids:", all_info)
 
 # Lấy thông tin bệnh nhân để update
-# Biến toàn cục để lưu all_info
-_global_all_info = None
 
 def get_all_info():
-    global _global_all_info
-    if _global_all_info is not None:
-        return _global_all_info
 
     all_info = []
     visit_idas = check_information_patient_initial()
@@ -217,20 +212,13 @@ def get_all_info():
         except requests.RequestException as e:
             print(f"Lỗi khi thực hiện yêu cầu: {e}")
 
-    _global_all_info = all_info
-    print("_global_all_info:", _global_all_info)
-    return _global_all_info if _global_all_info else []
+    print("all_info:", all_info)
+    return all_info
 
-def get_visit_ids():
-    global _global_all_info
-    print(_global_all_info)
-    if _global_all_info is None:
-        print("get_all_info must be called before get_visit_ids.")
-        return []
-
+def get_visit_ids(all_info):
     visit_ids = []
 
-    for info in _global_all_info:
+    for info in all_info:
         visit_id = info.get("visitId")
         url = f"{base_url}/pms/Visits/Id/{visit_id}?isGetDeleted=False"
         headers = {"Authorization": auth_token}

@@ -247,7 +247,7 @@ def process_patient_from_excel():
     # clear_excel_sheet(file_path, sheet_name)
 
     # Tạo dữ liệu bổ sung và ghi vào file Excel
-    num_records_to_add = 5  # Số dòng dữ liệu bổ sung
+    num_records_to_add = 2  # Số dòng dữ liệu bổ sung
     additional_data = generate_additional_data(excel_data.tail(1), num_records_to_add)
     write_data_to_excel(file_path, sheet_name, additional_data)
 
@@ -264,5 +264,3 @@ def process_patient_from_excel():
 
     print("entry_ids", entry_ids)
     return entry_ids  # Trả về danh sách các entry_id
-
-process_patient_from_excel()

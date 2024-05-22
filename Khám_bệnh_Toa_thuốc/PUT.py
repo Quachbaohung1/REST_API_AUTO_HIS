@@ -248,5 +248,3 @@ def update_information_patient_from_excel(row, is_first_run):
                 "isPassOnWarning": isPassOnWarning
             }
         update_information_patient(all_info, information_data)
-
-

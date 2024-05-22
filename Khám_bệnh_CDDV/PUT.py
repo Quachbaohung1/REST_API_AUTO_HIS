@@ -43,7 +43,7 @@ def prepare_information_data(row, info):
         "dxICD": clean_data(row['DxICD']),
         "dxText": clean_data(row['DxText']),
         "dxByStaffId": int(row['DxByStaffId']),
-        "txInstruction": int(row['TxInstruction']),
+        "txInstruction": 8,
         "createOn": info["createOn"],
         "createById": info["createById"],
         "status": info["status"],
@@ -113,7 +113,7 @@ def update_information_patient_from_excel(row):
         all_infoa = start_service_designation(entry_data)
 
         # Tạo chỉ định dịch vụ và lấy frVisitEntryId
-        frVisitEntryId = data_of_create_service_designation(row, all_infoa)
+        frVisitEntryId = data_of_create_service_designation(row, all_infoa, all_info)
 
         # Thêm frVisitEntryId vào danh sách
         frVisitEntryIds.append(frVisitEntryId)

@@ -1,6 +1,5 @@
 import requests
 import pandas as pd
-import re
 from copy import deepcopy
 
 
@@ -87,9 +86,9 @@ def create_service_designation(data):
 
 
 # Dữ liệu của chỉ định dịch vụ
-def data_of_create_service_designation(row, all_infoa):
+def data_of_create_service_designation(row, all_infoa, all_info):
     from Khám_bệnh_CDDV.GET import check_information_patient_subsequent, set_true
-    visit_info_list = check_information_patient_subsequent()
+    visit_info_list = check_information_patient_subsequent(all_info)
 
     # Xử lý các giá trị null
     def handle_null(value):
@@ -124,7 +123,7 @@ def data_of_create_service_designation(row, all_infoa):
                 "LabReqNotes": handle_null(row['LabReqNotes']),
                 "DxICD": dxICD,
                 "DxText": dxText,
-                "Attribute": int(row['Attribute']),
+                "Attribute": 1,
                 "FrVisitEntryId": entryId,
                 "CreateOn": onDate,
                 "CreateById": dxByStaffId,
@@ -283,15 +282,20 @@ def process_kb_CDDV():
     excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
 
     # Tạo dữ liệu bổ sung và ghi vào file Excel
-    num_records_to_add = 5  # Số dòng dữ liệu bổ sung
+    num_records_to_add = 2  # Số dòng dữ liệu bổ sung
     additional_data = generate_additional_data(excel_data.tail(1), num_records_to_add)
     write_data_to_excel(file_path, sheet_name, additional_data)
 
     # Đọc lại dữ liệu đã ghi vào file
     additional_data = pd.read_excel(file_path, sheet_name=sheet_name)
     # Thông tin
+    frVisitEntryIds = []
     for index, row in additional_data.iterrows():
-        create_information_patient()
-        update_information_patient_from_excel(row)
+        # create_information_patient()
+        frVisitEntryId = update_information_patient_from_excel(row)
+        frVisitEntryIds.append(frVisitEntryId)
+        print("frVisitEntryIds:", frVisitEntryIds)
+    return frVisitEntryIds
+
 
 process_kb_CDDV()
