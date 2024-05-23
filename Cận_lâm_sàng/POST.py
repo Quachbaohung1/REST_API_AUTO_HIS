@@ -1,7 +1,6 @@
 import requests
 import pandas as pd
 
-
 # Base url
 base_url = "http://115.79.31.186:1096"
 
@@ -57,6 +56,7 @@ def create_patient_service():
         print(f"Request failed: {e}")
         return []
 
+
 # Tạo bill
 def create_bill():
     exItem_ids = create_patient_service()
@@ -65,6 +65,7 @@ def create_bill():
     data = exItem_ids
     response = requests.post(url, json=data, headers=headers)
     response.raise_for_status()
+
 
 def create_information_patient():
     from Cận_lâm_sàng.GET import get_info_patient
@@ -88,12 +89,50 @@ def create_information_patient():
     return response_data
 
 
+def create_visitIds(entry_ids):
+    from Cận_lâm_sàng.GET import get_information_patient
+    EntryIds = get_information_patient(entry_ids)
+    url = f"{base_url}/cis/TxVisits/EntryIds"
+    headers = {"Authorization": auth_token}
+    # Tạo data từ danh sách labEx_ids
+    data = EntryIds
+    response = requests.post(url, json=data, headers=headers)
+    response.raise_for_status()
+    # Xử lý response data
+    response_data = response.json()
+    print("response_data:", response_data)
+    # Trích xuất txVisitId từ response_data nếu có
+    txVisitIds = []
+    for item in response_data:
+        if "txVisitId" in item:
+            txVisitIds.append(item["txVisitId"])
+
+    return txVisitIds
+
+
+def create_loadTxVisitIds(entry_ids):
+    txVisitIds = create_visitIds(entry_ids)
+    for txVisitId in txVisitIds:
+        url = f"{base_url}/cis/TxVisitDX/LoadTxVisitIds"
+        headers = {"Authorization": auth_token}
+        # Tạo data từ danh sách labEx_ids
+        data = txVisitId
+        response = requests.post(url, json=data, headers=headers)
+        response.raise_for_status()
+        # Xử lý response data
+        response_data = response.json()
+        print("response_data:", response_data)
+        return response_data
+
 
 def process_test():
     from Cận_lâm_sàng.GET import choose_patient_to_start
-    choose_patient_to_start()
+    entry_ids = choose_patient_to_start()
+    print("entry_ids:", entry_ids)
     create_bill()
     create_information_patient()
+    create_loadTxVisitIds(entry_ids)
 
 
+# Call
 process_test()

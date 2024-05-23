@@ -1,8 +1,8 @@
 import datetime
+import sys
+
 import requests
 import json
-
-
 
 # Base url
 base_url = "http://115.79.31.186:1096"
@@ -71,40 +71,49 @@ class EntryIdManager:
         from Tiếp_nhận.POST import process_patient_from_excel
         self.entry_ids = process_patient_from_excel()  # Lấy danh sách entry_id từ file Excel
         self.current_index = 0  # Reset chỉ số
+        print(f"Loaded entry_ids: {self.entry_ids}")
 
     def get_next_entry_id(self):
-        if not self.entry_ids or self.current_index >= len(self.entry_ids):
+        if self.current_index >= len(self.entry_ids):
             print("No more entry_ids available.")
-            return None
+            sys.exit()
 
         entry_id = self.entry_ids[self.current_index]
         self.current_index += 1
+        print(f"Returning entry_id: {entry_id}, current_index: {self.current_index}")
         return entry_id
+
 
 # Tạo instance của EntryIdManager và load danh sách entry_ids
 entry_id_manager = EntryIdManager()
 entry_id_manager.load_entry_ids()
 
+
 def check_visit_enty():
-    entry_id = entry_id_manager.get_next_entry_id()
-    if entry_id is None:
-        return []
+    count = 0  # Biến đếm số lần đã chạy
+    while count < 2:  # Chỉ chạy 2 lần
+        entry_id = entry_id_manager.get_next_entry_id()
+        if entry_id is None:
+            print("All entry_ids have been processed.")
+            return []
 
-    try:
-        url = f"{base_url}/pms/VisitEntries/{entry_id}"
-        headers = {"Authorization": auth_token}
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        visit_id = response.json()["visitId"]
-        print("visit_id:", visit_id)
-        return [visit_id]
-    except requests.RequestException as e:
-        print(f"Request failed: {e}")
-        return []
-    except json.JSONDecodeError as e:
-        print(f"Failed to decode JSON: {e}")
-        return []
-
+        try:
+            url = f"{base_url}/pms/VisitEntries/{entry_id}"
+            headers = {"Authorization": auth_token}
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            visit_id = response.json()["visitId"]
+            print(f"visit_id for entry_id {entry_id}: {visit_id}")
+            count += 1  # Tăng biến đếm sau mỗi lần chạy
+            return [visit_id]
+        except requests.RequestException as e:
+            print(f"Request failed: {e}")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"Failed to decode JSON: {e}")
+            return []
+    else:
+        print("Stopped after 2 runs.")
 
 # Lấy thông tin bệnh nhân GetDeleted
 def check_information_patient_initial():
@@ -166,10 +175,10 @@ def check_information_patient_subsequent(all_info):
     # Trả về danh sách thông tin các lượt thăm dưới dạng JSON
     return visit_info_list
 
+
 # Lấy thông tin bệnh nhân để update
 
 def get_all_info():
-
     all_info = []
     visit_idas = check_information_patient_initial()
 
@@ -211,6 +220,7 @@ def get_all_info():
     print("all_info:", all_info)
     return all_info
 
+
 def get_visit_ids(all_info):
     visit_ids = []
 
@@ -233,6 +243,7 @@ def get_visit_ids(all_info):
 
     return visit_ids
 
+
 def get_data_by_entry_id(entryId):
     entryIds = []
     url = f"{base_url}/cis/TxVisits/{entryId}?attribute=2"
@@ -247,11 +258,10 @@ def get_data_by_entry_id(entryId):
     print("entryIds:", entryIds)
     return entryIds
 
+
 # isLoadItem=True
 def set_true(PatientId):
     url = f"{base_url}/cis/LabExams/LoadAllByPatientId/{PatientId}?isLoadItem=True"
     headers = {"Authorization": auth_token}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-
-

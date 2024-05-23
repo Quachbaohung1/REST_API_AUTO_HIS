@@ -60,14 +60,33 @@ def get_info_patient():
     print("labEx_ids_and_patient_ids:", labEx_ids_and_patient_ids)
     return labEx_ids_and_patient_ids
 
+
 # Chọn BN để trả CLS
 def choose_patient_to_start():
     from Khám_bệnh_CDDV.POST import process_kb_CDDV
-    frVisitEntryId = process_kb_CDDV()
-    url = f"{base_url}/pms/Visits/EntryId/{frVisitEntryId}"
-    headers = {"Authorization": auth_token}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    response_data = response.json()
-    print("response_data:", response_data)
+    frVisitEntryIds = process_kb_CDDV()
+    entry_ids = []
+    for frVisitEntryId in frVisitEntryIds:
+        url = f"{base_url}/pms/Visits/EntryId/{frVisitEntryId[0]}"
+        headers = {"Authorization": auth_token}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        response_data = response.json()
+        print("response_data:", response_data)
+        # Truy xuất entryId từ trường con entry
+        entry = response_data.get("entry")
+        if entry and "entryId" in entry:
+            entry_ids.append(entry["entryId"])
+    return entry_ids
+
+
+# Chọn BN để trả CLS
+def get_information_patient(entry_ids):
+    for entry_id in entry_ids:
+        url = f"{base_url}/pms/Visits/EntryId/{entry_id}"
+        headers = {"Authorization": auth_token}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        response_data = response.json()
+        print("response_data:", response_data)
     return response_data

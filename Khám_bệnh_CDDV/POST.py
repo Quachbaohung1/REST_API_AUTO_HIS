@@ -2,7 +2,6 @@ import requests
 import pandas as pd
 from copy import deepcopy
 
-
 # Base url
 base_url = "http://115.79.31.186:1096"
 
@@ -231,6 +230,7 @@ def data_of_create_service_designation(row, all_infoa, all_info):
             frVisitEntryId = create_service_designation(service_data)
             return frVisitEntryId
 
+
 # Kiểm tra chỉ định dịch vụ
 # def check_service_designation(row, all_infoa):
 #     url = f"{base_url}/cis/LabExamItems/LabExamIds?ExcludedAttribute=&serviceTypeL0=&isLoadDelete=False"
@@ -255,7 +255,6 @@ def data_of_create_service_designation(row, all_infoa, all_info):
 #         return response_json
 
 
-
 def generate_additional_data(original_data, num_records):
     new_data = []
 
@@ -266,6 +265,7 @@ def generate_additional_data(original_data, num_records):
             new_data.append(new_row)
 
     return pd.DataFrame(new_data)
+
 
 def write_data_to_excel(file_path, sheet_name, data):
     # Ghi dữ liệu vào tệp Excel và ghi đè lên dữ liệu hiện có
@@ -290,12 +290,9 @@ def process_kb_CDDV():
     additional_data = pd.read_excel(file_path, sheet_name=sheet_name)
     # Thông tin
     frVisitEntryIds = []
-    for index, row in additional_data.iterrows():
-        # create_information_patient()
-        frVisitEntryId = update_information_patient_from_excel(row)
-        frVisitEntryIds.append(frVisitEntryId)
-        print("frVisitEntryIds:", frVisitEntryIds)
-    return frVisitEntryIds
-
-
-process_kb_CDDV()
+    for _ in range(num_records_to_add):
+        for index, row in additional_data.iterrows():
+            frVisitEntryId = update_information_patient_from_excel(row)
+            frVisitEntryIds.append(frVisitEntryId)
+            print("frVisitEntryIds:", frVisitEntryIds)
+        return frVisitEntryIds

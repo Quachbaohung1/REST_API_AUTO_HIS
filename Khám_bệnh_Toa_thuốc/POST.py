@@ -23,7 +23,7 @@ def create_information_patient():
 
 # Chọn bệnh nhân
 def choose_patient():
-    from Khám_bệnh_CDDV.GET import check_visit_enty
+    from Khám_bệnh_Toa_thuốc.GET import check_visit_enty
     visit_ids = check_visit_enty()
     visit_idas = []
     for visit_id in visit_ids:
@@ -100,8 +100,9 @@ def write_data_to_excel(file_path, sheet_name, data):
     with pd.ExcelWriter(file_path, engine='openpyxl', mode='w') as writer:
         data.to_excel(writer, sheet_name=sheet_name, index=False)
 
+
 # Call
-def process_test():
+def process_kb_ketoa():
     from Khám_bệnh_Toa_thuốc.PUT import update_medicine_patient_from_excel
     # from Khám_bệnh.GET import get_information_patient
     file_path = "D://HIS api automation/DataTest/Data_API_Thuốc.xlsx"
@@ -122,4 +123,4 @@ def process_test():
     for index, row in additional_data.iterrows():
         update_medicine_patient_from_excel(row)
 
-process_test()
+process_kb_ketoa()
