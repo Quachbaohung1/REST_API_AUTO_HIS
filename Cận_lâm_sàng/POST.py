@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+from copy import deepcopy
 
 # Base url
 base_url = "http://115.79.31.186:1096"
@@ -112,26 +113,55 @@ def create_visitIds(entry_ids):
 
 def create_loadTxVisitIds(entry_ids):
     txVisitIds = create_visitIds(entry_ids)
-    for txVisitId in txVisitIds:
-        url = f"{base_url}/cis/TxVisitDX/LoadTxVisitIds"
-        headers = {"Authorization": auth_token}
-        # Tạo data từ danh sách labEx_ids
-        data = txVisitId
-        response = requests.post(url, json=data, headers=headers)
-        response.raise_for_status()
-        # Xử lý response data
-        response_data = response.json()
-        print("response_data:", response_data)
-        return response_data
+    url = f"{base_url}/cis/TxVisitDX/LoadTxVisitIds"
+    headers = {"Authorization": auth_token}
+    # Tạo data từ danh sách labEx_ids
+    data = txVisitIds
+    response = requests.post(url, json=data, headers=headers)
+    response.raise_for_status()
+    # Xử lý response data
+    response_data = response.json()
+    print("response_data:", response_data)
+    return response_data
+
+
+def generate_additional_data(original_data, num_records):
+    new_data = []
+
+    for _ in range(num_records):
+        for _, row in original_data.iterrows():
+            new_row = deepcopy(row)
+
+            new_data.append(new_row)
+
+    return pd.DataFrame(new_data)
+
+
+def write_data_to_excel(file_path, sheet_name, data):
+    # Ghi dữ liệu vào tệp Excel và ghi đè lên dữ liệu hiện có
+    with pd.ExcelWriter(file_path, engine='openpyxl', mode='w') as writer:
+        data.to_excel(writer, sheet_name=sheet_name, index=False)
 
 
 def process_test():
-    from Cận_lâm_sàng.GET import choose_patient_to_start
-    entry_ids = choose_patient_to_start()
-    print("entry_ids:", entry_ids)
-    create_bill()
-    create_information_patient()
-    create_loadTxVisitIds(entry_ids)
+    from Cận_lâm_sàng.PUT import update_CLS_patient_from_excel
+    file_path = "D://HIS api automation/DataTest/Data_API_CLS.xlsx"
+    sheet_name = "Sheet1"
+
+    # Đọc dữ liệu gốc từ tệp Excel
+    excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
+
+    # Tạo dữ liệu bổ sung và ghi vào file Excel
+    num_records_to_add = 2  # Số dòng dữ liệu bổ sung
+    additional_data = generate_additional_data(excel_data.tail(1), num_records_to_add)
+    write_data_to_excel(file_path, sheet_name, additional_data)
+
+    # Đọc lại dữ liệu đã ghi vào file
+    additional_data = pd.read_excel(file_path, sheet_name=sheet_name)
+    # Thông tin
+    for _ in range(num_records_to_add):
+        for index, row in additional_data.iterrows():
+            update_CLS_patient_from_excel(row)
 
 
 # Call

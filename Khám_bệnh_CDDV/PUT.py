@@ -97,6 +97,7 @@ def update_information_patient_from_excel(row):
         return []
 
     frVisitEntryIds = []
+    all_datas = []
 
     # Lặp qua tất cả các thông tin bệnh nhân
     for info in all_info:
@@ -113,10 +114,12 @@ def update_information_patient_from_excel(row):
         all_infoa = start_service_designation(entry_data)
 
         # Tạo chỉ định dịch vụ và lấy frVisitEntryId
-        frVisitEntryId = data_of_create_service_designation(row, all_infoa, all_info)
+        frVisitEntryId, response_data = data_of_create_service_designation(row, all_infoa, all_info)
 
         # Thêm frVisitEntryId vào danh sách
         frVisitEntryIds.append(frVisitEntryId)
+        all_datas.append(response_data)
 
     print("frVisitEntryIds:", frVisitEntryIds)
-    return frVisitEntryIds
+    print("all_datas:", all_datas)
+    return frVisitEntryIds, all_datas

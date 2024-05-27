@@ -79,9 +79,10 @@ def create_service_designation(data):
     headers = {"Authorization": auth_token}
     response = requests.post(url, json=data, headers=headers)
     response.raise_for_status()
-    frVisitEntryId = response.json()["frVisitEntryId"]
-    print("frVisitEntryId:", frVisitEntryId)  # In ra labExId
-    return frVisitEntryId
+    response_data = response.json()
+    frVisitEntryId = response_data.get("frVisitEntryId")
+    print("frVisitEntryId:", frVisitEntryId)
+    return frVisitEntryId, response_data
 
 
 # Dữ liệu của chỉ định dịch vụ
@@ -227,32 +228,8 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                 },
                 "FullAddress": handle_null(row['FullAddress'])
             }
-            frVisitEntryId = create_service_designation(service_data)
-            return frVisitEntryId
-
-
-# Kiểm tra chỉ định dịch vụ
-# def check_service_designation(row, all_infoa):
-#     url = f"{base_url}/cis/LabExamItems/LabExamIds?ExcludedAttribute=&serviceTypeL0=&isLoadDelete=False"
-#     headers = {"Authorization": auth_token}
-#
-#     # Get the labExId from data_of_create_service_designation
-#     labExIds = data_of_create_service_designation(row, all_infoa)
-#
-#     if isinstance(labExIds, int):
-#         labExIds = [labExIds]
-#
-#     for labExId in labExIds:
-#         data = [labExId]
-#         # Thực hiện yêu cầu POST để kiểm tra service designation
-#         response = requests.post(url, json=data, headers=headers)
-#         response.raise_for_status()
-#
-#         # In và trả về JSON phản hồi để kiểm tra và xác minh
-#         response_json = response.json()
-#         print("response_json", response_json)
-#
-#         return response_json
+            frVisitEntryId, response_data = create_service_designation(service_data)
+            return frVisitEntryId, response_data
 
 
 def generate_additional_data(original_data, num_records):
@@ -290,9 +267,12 @@ def process_kb_CDDV():
     additional_data = pd.read_excel(file_path, sheet_name=sheet_name)
     # Thông tin
     frVisitEntryIds = []
+    all_datas = []
     for _ in range(num_records_to_add):
         for index, row in additional_data.iterrows():
-            frVisitEntryId = update_information_patient_from_excel(row)
+            frVisitEntryId, response_data = update_information_patient_from_excel(row)
             frVisitEntryIds.append(frVisitEntryId)
-            print("frVisitEntryIds:", frVisitEntryIds)
-        return frVisitEntryIds
+            all_datas.append(response_data)
+            print("frVisitEntryIds1:", frVisitEntryIds)
+            print("all_datas1:", all_datas)
+        return frVisitEntryIds, all_datas
