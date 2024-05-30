@@ -143,7 +143,7 @@ def write_data_to_excel(file_path, sheet_name, data):
         data.to_excel(writer, sheet_name=sheet_name, index=False)
 
 
-def process_test():
+def process_CLS():
     from Cận_lâm_sàng.PUT import update_CLS_patient_from_excel
     file_path = "D://HIS api automation/DataTest/Data_API_CLS.xlsx"
     sheet_name = "Sheet1"
@@ -163,6 +163,3 @@ def process_test():
         for index, row in additional_data.iterrows():
             update_CLS_patient_from_excel(row)
 
-
-# Call
-process_test()

@@ -134,13 +134,13 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                     {
                         "LabExId": int(row['LabExId']),
                         "MedServiceId": int(row['MedServiceId']),
-                        "PriceId": int(row['PriceId']),
+                        "PriceId": int(row['PriceId.1']),
                         "InsBenefitType": InsBenefitType,
                         "InsBenefitRatio": InsBenefitRatio,
                         "InsCardId": InsCardId,
                         "Qty": float(row['Qty']),
-                        "Price": float(row['Price']),
-                        "InsPrice": float(row['InsPrice']),
+                        "Price": float(row['Price.1']),
+                        "InsPrice": float(row['InsPrice.1']),
                         "InsPriceRatio": int(row['InsPriceRatio']),
                         "Amt": float(row['InsPrice']),
                         "Attribute": int(row['Attribute']),
@@ -182,13 +182,13 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                 "ItemI0": {
                     "LabExId": int(row['LabExId']),
                     "MedServiceId": int(row['MedServiceId']),
-                    "PriceId": int(row['PriceId']),
+                    "PriceId": int(row['PriceId.1']),
                     "InsBenefitType": InsBenefitType,
                     "InsBenefitRatio": InsBenefitRatio,
                     "InsCardId": InsCardId,
                     "Qty": float(row['Qty']),
-                    "Price": float(row['Price']),
-                    "InsPrice": float(row['InsPrice']),
+                    "Price": float(row['Price.1']),
+                    "InsPrice": float(row['InsPrice.1']),
                     "InsPriceRatio": int(row['InsPriceRatio']),
                     "Amt": float(row['InsPrice']),
                     "Attribute": int(row['Attribute']),
@@ -276,3 +276,4 @@ def process_kb_CDDV():
             print("frVisitEntryIds1:", frVisitEntryIds)
             print("all_datas1:", all_datas)
         return frVisitEntryIds, all_datas
+

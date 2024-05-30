@@ -231,10 +231,12 @@ def generate_additional_data(original_data, num_records):
 
     return pd.DataFrame(new_data)
 
+
 def write_data_to_excel(file_path, sheet_name, data):
     # Ghi dữ liệu vào tệp Excel và ghi đè lên dữ liệu hiện có
     with pd.ExcelWriter(file_path, engine='openpyxl', mode='w') as writer:
         data.to_excel(writer, sheet_name=sheet_name, index=False)
+
 
 def process_patient_from_excel():
     file_path = "D://HIS api automation/DataTest/Data_API_Tiếp_nhận.xlsx"
@@ -242,9 +244,6 @@ def process_patient_from_excel():
 
     # Đọc dữ liệu gốc từ tệp Excel
     excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
-
-    # Xóa hết dữ liệu trong tệp Excel
-    # clear_excel_sheet(file_path, sheet_name)
 
     # Tạo dữ liệu bổ sung và ghi vào file Excel
     num_records_to_add = 2  # Số dòng dữ liệu bổ sung
@@ -264,3 +263,4 @@ def process_patient_from_excel():
 
     print("entry_ids", entry_ids)
     return entry_ids  # Trả về danh sách các entry_id
+
