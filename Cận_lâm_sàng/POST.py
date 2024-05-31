@@ -162,4 +162,3 @@ def process_CLS():
     for _ in range(num_records_to_add):
         for index, row in additional_data.iterrows():
             update_CLS_patient_from_excel(row)
-

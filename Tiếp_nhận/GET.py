@@ -16,5 +16,4 @@ def CurrentServerDateTime():
     assert response.status_code == 200
     json_data = response.json()
     json_str = json.dumps(json_data, indent=4)
-    print("Json response body: ", json_str)
     return json_str

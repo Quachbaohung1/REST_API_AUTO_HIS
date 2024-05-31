@@ -39,6 +39,7 @@ def choose_patient():
     print("visit_idas", visit_idas)
     return visit_idas
 
+
 # Chọn thuốc
 def choose_medicine(data):
     url = f"{base_url}/ims/InvNowAvailables/GetInventoriesForBooking/?isInsurrance=True&name=&medAI=&fullName=&LengthLimit=20&fullNameOrCode=False&attribute=&isNoLoadItems=False"
@@ -48,52 +49,76 @@ def choose_medicine(data):
     response_json = response.json()
     return response_json
 
+
 # Data thuốc
-def data_medicine(row):
-    def handle_null(value, default=None, to_type=int):
-        return to_type(value) if not pd.isna(value) else default
+def data_medicine(rows):
+    # Tạo danh sách để lưu trữ thông tin về mỗi loại thuốc
+    medicines = []
 
-    # Chuyển đổi giá trị "IgnoreStoreId", "IgnoreLotId", "IgnoreInvSource" sang kiểu boolean
-    IgnoreStoreId = False if str(row['IgnoreStoreId']).lower() == 'false' else True
-    IgnoreLotId = False if str(row['IgnoreLotId']).lower() == 'false' else True
-    IgnoreInvSource = False if str(row['IgnoreInvSource']).lower() == 'false' else True
+    for _, row in rows.iterrows():
+        def handle_null(value, default=None, to_type=int):
+            return to_type(value) if not pd.isna(value) else default
 
-    medicine_data = {
-        "StoreIds": [
-            handle_null(row['StoreIds'])
-        ],
-        "InvSources": handle_null(row['InvSources'], default=None, to_type=int),
-        "LotIds": handle_null(row['LotIds'], default=None, to_type=int),
-        "ItemIds": [
-            handle_null(row['ItemIds'])
-        ],
-        "IgnoreItemIds": handle_null(row['IgnoreItemIds'], default=None, to_type=int),
-        "VouStatus": handle_null(row['VouStatus'], default=None, to_type=int),
-        "IgnoreStoreId": IgnoreStoreId,
-        "IgnoreLotId": IgnoreLotId,
-        "IgnoreInvSource": IgnoreInvSource,
-        "ItemCatIds": handle_null(row['ItemCatIds'], default=None, to_type=int),
-        "ItemTypes": handle_null(row['ItemTypes'], default=None, to_type=int),
-        "BidIds": handle_null(row['BidIds'], default=None, to_type=int),
-        "ProviderIds": handle_null(row['ProviderIds'], default=None, to_type=int),
-        "IgnoreItemCatIds": handle_null(row['IgnoreItemCatIds'], default=None, to_type=int),
-        "TakeOnlyGroupInStoreHospital": handle_null(row['TakeOnlyGroupInStoreHospital'], default=None, to_type=int),
-        "TakeOnlyItemIns": handle_null(row['TakeOnlyItemIns'], default=None, to_type=int)
-    }
+        # Xác định các giá trị từ cột tương ứng cho mỗi loại thuốc
+        store_ids = handle_null(row['StoreIds'])
+        inv_sources = handle_null(row['InvSources'], default=None, to_type=int)
+        lot_ids = handle_null(row['LotIds'], default=None, to_type=int)
+        item_ids = handle_null(row['ItemIds'])
+        ignore_item_ids = handle_null(row['IgnoreItemIds'], default=None, to_type=int)
+        vou_status = handle_null(row['VouStatus'], default=None, to_type=int)
+        ignore_store_id = False if str(row['IgnoreStoreId']).lower() == 'false' else True
+        ignore_lot_id = False if str(row['IgnoreLotId']).lower() == 'false' else True
+        ignore_inv_source = False if str(row['IgnoreInvSource']).lower() == 'false' else True
+        item_cat_ids = handle_null(row['ItemCatIds'], default=None, to_type=int)
+        item_types = handle_null(row['ItemTypes'], default=None, to_type=int)
+        bid_ids = handle_null(row['BidIds'], default=None, to_type=int)
+        provider_ids = handle_null(row['ProviderIds'], default=None, to_type=int)
+        ignore_item_cat_ids = handle_null(row['IgnoreItemCatIds'], default=None, to_type=int)
+        take_only_group_in_store_hospital = handle_null(row['TakeOnlyGroupInStoreHospital'], default=None, to_type=int)
+        take_only_item_ins = handle_null(row['TakeOnlyItemIns'], default=None, to_type=int)
 
-    medicine = choose_medicine(medicine_data)
-    return medicine
+        medicine_data = {
+            "StoreIds": [
+                store_ids
+            ],
+            "InvSources": inv_sources,
+            "LotIds": lot_ids,
+            "ItemIds": [
+                item_ids
+            ],
+            "IgnoreItemIds": ignore_item_ids,
+            "VouStatus": vou_status,
+            "IgnoreStoreId": ignore_store_id,
+            "IgnoreLotId": ignore_lot_id,
+            "IgnoreInvSource": ignore_inv_source,
+            "ItemCatIds": item_cat_ids,
+            "ItemTypes": item_types,
+            "BidIds": bid_ids,
+            "ProviderIds": provider_ids,
+            "IgnoreItemCatIds": ignore_item_cat_ids,
+            "TakeOnlyGroupInStoreHospital": take_only_group_in_store_hospital,
+            "TakeOnlyItemIns": take_only_item_ins
+        }
+
+        # Chọn loại thuốc từ thông tin được cung cấp
+        medicine = choose_medicine(medicine_data)
+        medicines.append(medicine)
+
+    return medicines
+
 
 def generate_additional_data(original_data, num_records):
     new_data = []
 
     for _ in range(num_records):
-        for _, row in original_data.iterrows():
-            new_row = deepcopy(row)
-
-            new_data.append(new_row)
-
+        for i in range(0, len(original_data), 2):
+            if i + 1 < len(original_data):
+                new_row1 = deepcopy(original_data.iloc[i])
+                new_row2 = deepcopy(original_data.iloc[i + 1])
+                new_data.append(new_row1)
+                new_data.append(new_row2)
     return pd.DataFrame(new_data)
+
 
 def write_data_to_excel(file_path, sheet_name, data):
     # Ghi dữ liệu vào tệp Excel và ghi đè lên dữ liệu hiện có
@@ -113,14 +138,17 @@ def process_kb_ketoa():
 
     # Tạo dữ liệu bổ sung và ghi vào file Excel
     num_records_to_add = 2  # Số dòng dữ liệu bổ sung
-    additional_data = generate_additional_data(excel_data.tail(1), num_records_to_add)
+    additional_data = generate_additional_data(excel_data.tail(2), num_records_to_add)
     write_data_to_excel(file_path, sheet_name, additional_data)
 
     # Đọc lại dữ liệu đã ghi vào file
     additional_data = pd.read_excel(file_path, sheet_name=sheet_name)
 
     # Thông tin cần thiết cho get_information_patient
-    for index, row in additional_data.iterrows():
-        update_medicine_patient_from_excel(row)
+    for i in range(0, len(additional_data), 2):
+        if i + 1 < len(additional_data):
+            rows = additional_data.iloc[i:i + 2]
+            update_medicine_patient_from_excel(rows)
+
 
 process_kb_ketoa()
