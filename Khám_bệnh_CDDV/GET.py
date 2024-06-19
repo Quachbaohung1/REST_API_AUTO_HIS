@@ -1,12 +1,7 @@
 import datetime
-import sys
 import requests
 import json
-
-# Base url
-base_url = "http://115.79.31.186:1096"
-# Auth token
-auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
+from Cấu_hình.Setup import base_url, auth_token
 
 
 # Lấy ngày tháng từ hàm GET ở file Tiếp nhận
@@ -61,62 +56,26 @@ def check_patient_in_room():
 
 
 # Hiển thị entry_visit
-class EntryIdManager:
-    def __init__(self):
-        self.entry_ids = []
-        self.current_index = 0
+def check_visit_enty(entry_id):
+    try:
+        url = f"{base_url}/pms/VisitEntries/{entry_id}"
+        headers = {"Authorization": auth_token}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        visit_id = response.json()["visitId"]
+        print(f"visit_id for entry_id {entry_id}: {visit_id}")
+        return [visit_id]
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Failed to decode JSON: {e}")
+        return []
 
-    def load_entry_ids(self):
-        from Tiếp_nhận.POST import process_patient_from_excel
-        self.entry_ids = process_patient_from_excel()  # Lấy danh sách entry_id từ file Excel
-        self.current_index = 0  # Reset chỉ số
-        print(f"Loaded entry_ids: {self.entry_ids}")
-
-    def get_next_entry_id(self):
-        if self.current_index >= len(self.entry_ids):
-            print("No more entry_ids available.")
-            sys.exit()
-
-        entry_id = self.entry_ids[self.current_index]
-        self.current_index += 1
-        print(f"Returning entry_id: {entry_id}, current_index: {self.current_index}")
-        return entry_id
-
-
-# Tạo instance của EntryIdManager và load danh sách entry_ids
-entry_id_manager = EntryIdManager()
-entry_id_manager.load_entry_ids()
-
-
-def check_visit_enty():
-    count = 0  # Biến đếm số lần đã chạy
-    while count < 2:  # Chỉ chạy 2 lần
-        entry_id = entry_id_manager.get_next_entry_id()
-        if entry_id is None:
-            print("All entry_ids have been processed.")
-            return []
-
-        try:
-            url = f"{base_url}/pms/VisitEntries/{entry_id}"
-            headers = {"Authorization": auth_token}
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            visit_id = response.json()["visitId"]
-            print(f"visit_id for entry_id {entry_id}: {visit_id}")
-            count += 1  # Tăng biến đếm sau mỗi lần chạy
-            return [visit_id]
-        except requests.RequestException as e:
-            print(f"Request failed: {e}")
-            return []
-        except json.JSONDecodeError as e:
-            print(f"Failed to decode JSON: {e}")
-            return []
-    else:
-        print("Stopped after 2 runs.")
 
 # Lấy thông tin bệnh nhân GetDeleted
-def check_information_patient_initial():
-    visit_ids = check_visit_enty()
+def check_information_patient_initial(entry_id):
+    visit_ids = check_visit_enty(entry_id)
     visit_idas = []
     for visit_id in visit_ids:
         url = f"{base_url}/pms/Visits/Id/{visit_id}?isGetDeleted=False"
@@ -176,10 +135,9 @@ def check_information_patient_subsequent(all_info):
 
 
 # Lấy thông tin bệnh nhân để update
-
-def get_all_info():
+def get_all_info(entry_id):
     all_info = []
-    visit_idas = check_information_patient_initial()
+    visit_idas = check_information_patient_initial(entry_id)
 
     for visit_id in visit_idas:
         url = f"{base_url}/pms/VisitEntries/VisitId/{visit_id}"
@@ -189,7 +147,7 @@ def get_all_info():
             response.raise_for_status()
             response_json = response.json()
 
-            all_info.extend([
+            all_info.extend(
                 {
                     "entryId": int(item.get("entryId")),
                     "visitId": int(item.get("visitId")),
@@ -211,7 +169,7 @@ def get_all_info():
                     "insCardId": int(item.get("insCardId", 0))
                 }
                 for item in response_json
-            ])
+            )
 
         except requests.RequestException as e:
             print(f"Lỗi khi thực hiện yêu cầu: {e}")

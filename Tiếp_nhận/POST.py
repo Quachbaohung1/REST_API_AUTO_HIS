@@ -1,31 +1,31 @@
 import math
-import numpy as np
 import requests
 import pandas as pd
 import datetime
 import re
 from copy import deepcopy
 from Tiếp_nhận import GET
+from Cấu_hình.Setup import base_url, auth_token
 
 # Base url
-base_url = "http://115.79.31.186:1096"
+base_url = base_url
+
 
 # Auth token
-auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
+auth_token = auth_token
 
 
 # POST request
 def create_patient(data, verify_data):
     url = f"{base_url}/pms/Patients"
     headers = {"Authorization": auth_token}
-
     try:
         response = requests.post(url, json=data, headers=headers)
         response.raise_for_status()
         response_data = response.json()
         patient_id = response_data.get("patientId")
         result = compare_data(response_data, verify_data)
-        return response_data, patient_id, result
+        return patient_id, result
     except requests.exceptions.RequestException as e:
         # Log the error for debugging purposes
         print(f"\nAn error occurred during patient creation: {e}")
@@ -393,9 +393,9 @@ def process_create_patient_from_excel(file_path):
         patient_data = create_patient_from_excel(row)
         abc = create_patient(patient_data, verify_row)
         if abc is None:  # Check if response_data is None, indicating failure
-            response_data, patient_id, patient_result = None, None, "Failed"
+            patient_id, patient_result = None, "Failed"
         else:
-            response_data, patient_id, patient_result = abc
+            patient_id, patient_result = abc
         print(f"\nCreate patient result {index}: {patient_result}")
         return abc
 
@@ -413,11 +413,10 @@ def process_create_insurance_from_excel(file_path):
 
     verify_data = pd.read_excel(file_path, sheet_name=check_sheet_name)
 
-    entry_ids = []  # Danh sách để lưu các entry_id
     for index, row in excel_data.iterrows():
         verify_row = verify_data.iloc[index]
         patient_data = create_patient_from_excel(row)
-        response_data, patient_id, patient_result = create_patient(patient_data, verify_row)
+        patient_id, patient_result = create_patient(patient_data, verify_row)
         print(f"\nCreate patient result {index}: {patient_result}")
 
         if int(row["InsBenefitType"]) == 2:
@@ -448,7 +447,7 @@ def process_patient_from_excel(file_path):
     for index, row in excel_data.iterrows():
         verify_row = verify_data.iloc[index]
         patient_data = create_patient_from_excel(row)
-        response_data, patient_id, patient_result = create_patient(patient_data, verify_row)
+        patient_id, patient_result = create_patient(patient_data, verify_row)
         print(f"\nCreate patient result {index}: {patient_result}")
 
         if int(row["InsBenefitType"]) == 2:
@@ -494,7 +493,7 @@ def process_generate_patient_from_excel(file_path):
     for index, row in additional_data.iterrows():
         verify_row = verify_data.iloc[index]
         patient_data = create_patient_from_excel(row)
-        response_data, patient_id, patient_result = create_patient(patient_data, verify_row)
+        patient_id, patient_result = create_patient(patient_data, verify_row)
         print(f"\nCreate patient result {index}: {patient_result}")
 
         if int(row["InsBenefitType"]) == 2:
@@ -537,7 +536,7 @@ def process_generate_sum_patient_from_excel(file_path):
     for index, row in additional_data.iterrows():
         verify_row = verify_data.iloc[index]
         patient_data = create_patient_from_excel(row)
-        response_data, patient_id, patient_result = create_patient(patient_data, verify_row)
+        patient_id, patient_result = create_patient(patient_data, verify_row)
         print(f"\nCreate patient result {index}: {patient_result}")
 
         if int(row["InsBenefitType"]) == 2:

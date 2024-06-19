@@ -1,13 +1,6 @@
-import datetime
-import sys
 import requests
-import json
 import pandas as pd
-
-# Base url
-base_url = "http://115.79.31.186:1096"
-# Auth token
-auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
+from Cấu_hình.Setup import base_url, auth_token
 
 
 # Khởi tạo thông tin
@@ -50,8 +43,8 @@ def create_service(visitId):
     response_data = response.json()
     all_info.extend([
         {
-            "entryId": item.get("entryId"),
-            "visitId": item.get("visitId"),
+            # "entryId": item.get("entryId"),
+            # "visitId": item.get("visitId"),
             "amt": item.get("amt"),
             "status": item.get("status"),
             "exItemId": item.get("exItemId"),
@@ -103,8 +96,11 @@ def data_of_create_service_designation(row, all_info, infos):
     ins_benefit_ratio = 100 if total_price <= 270000 else int(row["InsBenefitRatio"])
 
     # Tạo danh sách PaymentData với cấu trúc yêu cầu
-    payment_items = [
-        {
+    payment_items = []
+
+    # Tạo danh sách PaymentData với cấu trúc yêu cầu
+    for item in all_info:
+        payment_item = {
             "PaymentItemId": item.get('exItemId', None),
             "ItemType": int(row["ItemType"]) + 1,
             "PayType": int(row["PayType"]),
@@ -115,25 +111,9 @@ def data_of_create_service_designation(row, all_info, infos):
             "InsPrice": item.get('insPrice'),
             "InsPriceRatio": item.get('insPriceRatio'),
             "Qty": int(row["Qty"]),
-            "DiscAmt": int(row["DiscAmt"])
+            "DiscAmt": 0
         }
-        for index, item in enumerate(all_info)
-    ] + [
-        {
-            "PaymentItemId": infos[index].get('entryId', None),
-            "ItemType": int(row["ItemType"]),
-            "PayType": int(row["PayType"]),
-            "InsBenefitType": item.get('insBenefitType'),
-            "PriceId": int(row["PriceId"]),
-            "InsBenefitRatio": ins_benefit_ratio,
-            "Price": int(row["Price"]),
-            "InsPrice": int(row["InsPrice"]),
-            "InsPriceRatio": item.get('insPriceRatio'),
-            "Qty": int(row["Qty"]),
-            "DiscAmt": int(row["DiscAmt"])
-        }
-        for index, item in enumerate(all_info)
-    ]
+        payment_items.append(payment_item)
 
     for item in infos:
         service_data = {
@@ -174,19 +154,18 @@ def create_bill(visitId):
     return response_data
 
 
-def process_VP():
+def process_VP(file_path, file_path_a):
     from Viện_phí.GET import get_info_patient, get_info_status, check_txInstruction, get_info_service
-    from Viện_phí.PUT import prepare_information_data, update_information_patient
-    file_path = "D://HIS api automation/DataTest/Data_API_Khám_bệnh.xlsx"
-    file_path_a = "D://HIS api automation/DataTest/Data_API_Viện_phí.xlsx"
-    sheet_name = "Sheet1"
+    from Viện_phí.PUT import prepare_information_data, update_information_patient, closing_costs
+
+    sheet_name = "Data"
     sheet_name_a = "Sheet1"
     # Đọc dữ liệu gốc từ tệp Excel
     excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
     excel_data_a = pd.read_excel(file_path_a, sheet_name=sheet_name_a)
     num_records_to_add = 1
     # Nhập mã bệnh nhân
-    patientCode = 24011322
+    patientCode = 24011788
     for _ in range(num_records_to_add):
         for index, row in excel_data.iterrows():
             response_data = create_info_payment(patientCode)
@@ -194,7 +173,8 @@ def process_VP():
             visitId = get_info_patient(patientCode)
             txInstruction = check_txInstruction(visitId)
             if txInstruction == 3:
-                print("Được thực hiện thanh toán thành công")
+                closing_costs(visitId)
+                print("Được thực hiện thanh toán")
                 create_advancePayments(visitId)
                 all_info = create_service(visitId)
                 infos = get_info_status(visitId)
@@ -203,32 +183,11 @@ def process_VP():
                 create_service_designation(service_data)
                 get_info_service(visitId)
                 create_advancePayments(visitId)
-                create_bill(visitId)
+                response_data = create_bill(visitId)
+                return response_data
             else:
                 print("Còn tồn tại hướng xử trí tại phòng khám! Vui lòng cập nhật lại hướng xử trí!")
                 response_json = get_info_status(visitId)
-                entryId, data = prepare_information_data(row, response_json)
+                data, entryId, visitId = prepare_information_data(row, response_json)
                 update_information_patient(entryId, data)
-
-                # Thử lại kiểm tra trạng thái sau khi cập nhật
-                max_retries = 1
-                for attempt in range(max_retries):
-                    txInstruction = check_txInstruction(visitId)
-                    if txInstruction == 3:
-                        print("Được thực hiện thanh toán thành công sau khi cập nhật thông tin")
-                        create_advancePayments(visitId)
-                        all_info = create_service(visitId)
-                        infos = get_info_status(visitId)
-                        for index_a, row_a in excel_data_a.iterrows():
-                            service_data = data_of_create_service_designation(row_a, all_info, infos)
-                        create_service_designation(service_data)
-                        get_info_service(visitId)
-                        create_advancePayments(visitId)
-                        create_bill(visitId)
-                        break
-                    else:
-                        if attempt < max_retries - 1:
-                            print("Trạng thái chưa đạt yêu cầu, thử lại...")
-                        else:
-                            print("Không thể cập nhật trạng thái thành công sau nhiều lần thử")
-
+                closing_costs(visitId)

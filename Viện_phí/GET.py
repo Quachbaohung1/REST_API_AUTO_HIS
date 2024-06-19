@@ -1,12 +1,6 @@
 import datetime
-import sys
 import requests
-import json
-
-# Base url
-base_url = "http://115.79.31.186:1096"
-# Auth token
-auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
+from Cấu_hình.Setup import base_url, auth_token
 
 
 def date_formatted():
@@ -31,7 +25,7 @@ def get_info_patient(patientCode):
     if isinstance(response_data, list):
         for item in response_data:
             visitId = item.get("visitId")
-    return visitId
+            return visitId
 
 
 # Lấy thông tin CLS(Nếu có cận lầm sàng)
@@ -45,7 +39,7 @@ def get_info_CLS(patientCode):
     if isinstance(response_data, list):
         for item in response_data:
             labExId = item.get("labExId")
-    return labExId
+            return labExId
 
 
 # Check txInstruction

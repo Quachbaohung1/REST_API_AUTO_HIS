@@ -1,7 +1,4 @@
-import datetime
-import sys
 import requests
-import json
 import pandas as pd
 
 # Base url
@@ -83,4 +80,14 @@ def prepare_information_data(row, info):
             "contentHash": clean_data(row['ContentHash']),
             "isPassOnWarning": isPassOnWarning
         }
-        return information_data["entryId"], information_data
+        return information_data, information_data["entryId"], information_data["visitId"]
+
+
+def closing_costs(visitId):
+    headers = {"Authorization": auth_token}
+    url = f"{base_url}/pms/Visits/ConfirmCostAsync/{visitId}/True?insBenefitType=2"
+    data = None
+    response = requests.put(url, json=data, headers=headers)
+    response.raise_for_status()
+    response_data = response.json()
+    return response_data

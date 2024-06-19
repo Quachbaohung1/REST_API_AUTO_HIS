@@ -1,11 +1,6 @@
 import requests
 import pandas as pd
-
-
-#Base url
-base_url = "http://115.79.31.186:1096"
-#Auth token
-auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
+from Cấu_hình.Setup import base_url, auth_token
 
 
 def clean_data(value):
@@ -14,11 +9,17 @@ def clean_data(value):
 
 def update_information_patient(all_info, data):
     headers = {"Authorization": auth_token}
-    for info in all_info:
-        entryId = info['entryId']
-        url = f"{base_url}/pms/VisitEntries/{entryId}?forceNull=True&ptFullAddress=5%2F49+Ntl%2C+Ph%C6%B0%E1%BB%9Dng+07%2C+Qu%E1%BA%ADn+B%C3%ACnh+Th%E1%BA%A1nh%2C+Th%C3%A0nh+ph%E1%BB%91+H%E1%BB%93+Ch%C3%AD+Minh&isPassMedAIValid=&isPassMedAIValidOtherPx=False&isPassInteraction=False&isRemoveAllConsulation=True&isUpdateEntryValOnly=False&isBackupStatus=True"
-        response = requests.put(url, json=data, headers=headers)
-        response.raise_for_status()
+    try:
+        for info in all_info:
+            entryId = info['entryId']
+            url = f"{base_url}/pms/VisitEntries/{entryId}?forceNull=True&ptFullAddress=5%2F49+Ntl%2C+Ph%C6%B0%E1%BB%9Dng+07%2C+Qu%E1%BA%ADn+B%C3%ACnh+Th%E1%BA%A1nh%2C+Th%C3%A0nh+ph%E1%BB%91+H%E1%BB%93+Ch%C3%AD+Minh&isPassMedAIValid=&isPassMedAIValidOtherPx=False&isPassInteraction=False&isRemoveAllConsulation=True&isUpdateEntryValOnly=False&isBackupStatus=True"
+            response = requests.put(url, json=data, headers=headers)
+            response.raise_for_status()
+            result_api = response.status_code
+            return result_api
+    except requests.exceptions.RequestException as e:
+        # Log the error for debugging purposes
+        print(f"\nAn error occurred during patient creation: {e}")
 
 
 def prepare_information_data(row, info):
@@ -85,12 +86,12 @@ def prepare_information_data(row, info):
     return information_data, information_data["entryId"]
 
 
-def update_information_patient_from_excel(row):
+def update_information_patient_from_excel(row, entry_id):
     from Khám_bệnh_CDDV.GET import get_all_info, get_data_by_entry_id
-    from Khám_bệnh_CDDV.POST import start_service_designation, data_of_create_service_designation
+    from Khám_bệnh_CDDV.POST import start_service_designation, data_of_create_service_designation, create_service_designation
 
     # Lấy tất cả thông tin bệnh nhân
-    all_info = get_all_info()
+    all_info = get_all_info(entry_id)
     print("all_info:", all_info)
     if len(all_info) == 0:
         print("No information about patients.")
@@ -114,7 +115,9 @@ def update_information_patient_from_excel(row):
         all_infoa = start_service_designation(entry_data)
 
         # Tạo chỉ định dịch vụ và lấy frVisitEntryId
-        frVisitEntryId, response_data = data_of_create_service_designation(row, all_infoa, all_info)
+        service_data = data_of_create_service_designation(row, all_infoa, all_info)
+
+        frVisitEntryId, response_data = create_service_designation(service_data)
 
         # Thêm frVisitEntryId vào danh sách
         frVisitEntryIds.append(frVisitEntryId)

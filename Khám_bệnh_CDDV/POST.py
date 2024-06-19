@@ -1,12 +1,8 @@
 import requests
 import pandas as pd
 from copy import deepcopy
-
-# Base url
-base_url = "http://115.79.31.186:1096"
-
-# Auth token
-auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
+from Cấu_hình.Setup import base_url, auth_token
+from Tiếp_nhận.POST import compare_data, copy_sheet_values
 
 
 # Lấy thông tin tất cả các bệnh nhân
@@ -74,15 +70,20 @@ def start_service_designation(entry_data):
 
 
 # Chỉ định dịch vụ
-def create_service_designation(data):
+def create_service_designation(data, verify_data):
     url = f"{base_url}/cis/LabExams/AddWithItems?ptFullAddress=5%2F49+Ntl%2C+Ph%C6%B0%E1%BB%9Dng+07%2C+Qu%E1%BA%ADn+B%C3%ACnh+Th%E1%BA%A1nh%2C+Th%C3%A0nh+ph%E1%BB%91+H%E1%BB%93+Ch%C3%AD+Minh"
     headers = {"Authorization": auth_token}
-    response = requests.post(url, json=data, headers=headers)
-    response.raise_for_status()
-    response_data = response.json()
-    frVisitEntryId = response_data.get("frVisitEntryId")
-    print("frVisitEntryId:", frVisitEntryId)
-    return frVisitEntryId, response_data
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        response.raise_for_status()
+        response_data = response.json()
+        frVisitEntryId = response_data["frVisitEntryId"]
+        print("frVisitEntryId:", frVisitEntryId)
+        result = compare_data(response_data, verify_data)
+        return response_data, frVisitEntryId, result
+    except requests.exceptions.RequestException as e:
+        # Log the error for debugging purposes
+        print(f"\nAn error occurred during patient creation: {e}")
 
 
 # Dữ liệu của chỉ định dịch vụ
@@ -92,7 +93,7 @@ def data_of_create_service_designation(row, all_infoa, all_info):
 
     # Xử lý các giá trị null
     def handle_null(value):
-        return str(value) if not pd.isna(value) else ''
+        return value if not pd.isna(value) else None
 
     # Lấy thông tin từ all_info
     for visit_info in visit_info_list:
@@ -126,19 +127,19 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                 "Attribute": 1,
                 "FrVisitEntryId": entryId,
                 "CreateOn": onDate,
-                "CreateById": dxByStaffId,
+                "CreateById": handle_null(row['CreateById']),
                 "Status": int(row['Status']),
                 "WardUnitId": wardUnitId,
                 "ServiceName": handle_null(row['ServiceName']),
                 "LabExamItems": [
                     {
                         "LabExId": int(row['LabExId']),
-                        "MedServiceId": int(row['MedServiceId']),
+                        "MedServiceId": handle_null(row['MedServiceId']),
                         "PriceId": int(row['PriceId.1']),
                         "InsBenefitType": InsBenefitType,
                         "InsBenefitRatio": InsBenefitRatio,
                         "InsCardId": InsCardId,
-                        "Qty": float(row['Qty']),
+                        "Qty": handle_null(row['Qty']),
                         "Price": float(row['Price.1']),
                         "InsPrice": float(row['InsPrice.1']),
                         "InsPriceRatio": int(row['InsPriceRatio']),
@@ -146,9 +147,9 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                         "Attribute": int(row['Attribute']),
                         "ByProviderId": int(row['ByProviderId']),
                         "DiscAmtSeq": int(row['DiscAmtSeq']),
-                        "MedServiceTypeL0": int(row['MedServiceTypeL0']),
-                        "MedServiceTypeL2": int(row['MedServiceTypeL2']),
-                        "MedServiceTypeL3": int(row['MedServiceTypeL3']),
+                        "MedServiceTypeL0": handle_null(row['MedServiceTypeL0']),
+                        "MedServiceTypeL2": handle_null(row['MedServiceTypeL2']),
+                        "MedServiceTypeL3": handle_null(row['MedServiceTypeL3']),
                         "NonSubclinical": NonSubclinical,
                         "TypeL0Code": handle_null(row['TypeL0Code']),
                         "ByProviderCode": handle_null(row['ByProviderCode']),
@@ -162,7 +163,7 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                         "AttrString": handle_null(row['AttrString']),
                         "PaidAttrString": handle_null(row['PaidAttrString']),
                         "ServiceTypeOrderIndex": int(row['ServiceTypeOrderIndex']),
-                        "MedItemType": int(row['MedItemType']),
+                        "MedItemType": row['MedItemType'],
                         "MedItem": handle_null(row['MedItem']),
                         "Checked": handle_null(row['Checked']),
                         "OnDate": onDate,
@@ -181,12 +182,12 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                 ],
                 "ItemI0": {
                     "LabExId": int(row['LabExId']),
-                    "MedServiceId": int(row['MedServiceId']),
+                    "MedServiceId": handle_null(row['MedServiceId']),
                     "PriceId": int(row['PriceId.1']),
                     "InsBenefitType": InsBenefitType,
                     "InsBenefitRatio": InsBenefitRatio,
                     "InsCardId": InsCardId,
-                    "Qty": float(row['Qty']),
+                    "Qty": handle_null(row['Qty']),
                     "Price": float(row['Price.1']),
                     "InsPrice": float(row['InsPrice.1']),
                     "InsPriceRatio": int(row['InsPriceRatio']),
@@ -194,9 +195,9 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                     "Attribute": int(row['Attribute']),
                     "ByProviderId": int(row['ByProviderId']),
                     "DiscAmtSeq": int(row['DiscAmtSeq']),
-                    "MedServiceTypeL0": int(row['MedServiceTypeL0']),
-                    "MedServiceTypeL2": int(row['MedServiceTypeL2']),
-                    "MedServiceTypeL3": int(row['MedServiceTypeL3']),
+                    "MedServiceTypeL0": handle_null(row['MedServiceTypeL0']),
+                    "MedServiceTypeL2": handle_null(row['MedServiceTypeL2']),
+                    "MedServiceTypeL3": handle_null(row['MedServiceTypeL3']),
                     "NonSubclinical": NonSubclinical,
                     "TypeL0Code": handle_null(row['TypeL0Code']),
                     "ByProviderCode": handle_null(row['ByProviderCode']),
@@ -210,7 +211,7 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                     "AttrString": handle_null(row['AttrString']),
                     "PaidAttrString": handle_null(row['PaidAttrString']),
                     "ServiceTypeOrderIndex": int(row['ServiceTypeOrderIndex']),
-                    "MedItemType": int(row['MedItemType']),
+                    "MedItemType": row['MedItemType'],
                     "MedItem": handle_null(row['MedItem']),
                     "Checked": handle_null(row['Checked']),
                     "OnDate": onDate,
@@ -228,8 +229,8 @@ def data_of_create_service_designation(row, all_infoa, all_info):
                 },
                 "FullAddress": handle_null(row['FullAddress'])
             }
-            frVisitEntryId, response_data = create_service_designation(service_data)
-            return frVisitEntryId, response_data
+            # frVisitEntryId, response_data = create_service_designation(service_data)
+            return service_data
 
 
 def generate_additional_data(original_data, num_records):
@@ -250,30 +251,111 @@ def write_data_to_excel(file_path, sheet_name, data):
         data.to_excel(writer, sheet_name=sheet_name, index=False)
 
 
-def process_kb_CDDV():
-    from Khám_bệnh_CDDV.PUT import update_information_patient_from_excel
-    file_path = "D://HIS api automation/DataTest/Data_API_Khám_bệnh.xlsx"
-    sheet_name = "Sheet1"
+def process_check_patient_in_room():
+    from Khám_bệnh_CDDV.GET import get_all_info
+    # Thông tin
+    entry_ids = [38392]
+    for entry_id in entry_ids:
+        all_info = get_all_info(entry_id)
+        print("all_info:", all_info)
+        if len(all_info) == 0:
+            print("No information about patients.")
+            return []
+        return all_info
+
+
+def process_insert_info_patient(file_path):
+    from Khám_bệnh_CDDV.GET import get_all_info
+    from Khám_bệnh_CDDV.PUT import prepare_information_data, update_information_patient
+    sheet_name = "Data"
 
     # Đọc dữ liệu gốc từ tệp Excel
     excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
 
-    # Tạo dữ liệu bổ sung và ghi vào file Excel
-    num_records_to_add = 2  # Số dòng dữ liệu bổ sung
-    additional_data = generate_additional_data(excel_data.tail(1), num_records_to_add)
-    write_data_to_excel(file_path, sheet_name, additional_data)
-
-    # Đọc lại dữ liệu đã ghi vào file
-    additional_data = pd.read_excel(file_path, sheet_name=sheet_name)
     # Thông tin
-    frVisitEntryIds = []
-    all_datas = []
-    for _ in range(num_records_to_add):
-        for index, row in additional_data.iterrows():
-            frVisitEntryId, response_data = update_information_patient_from_excel(row)
+    entry_ids = [38392]
+
+    if len(entry_ids) != len(excel_data):
+        raise ValueError("Số lượng entry_ids và số lượng hàng trong additional_data phải bằng nhau.")
+
+    # Sử dụng một vòng lặp để xử lý từng hàng với từng entry_id tương ứng
+    for entry_id, (index, row) in zip(entry_ids, excel_data.iterrows()):
+        # Lấy tất cả thông tin bệnh nhân
+        all_info = get_all_info(entry_id)
+        print("all_info:", all_info)
+        if len(all_info) == 0:
+            print("No information about patients.")
+            return []
+
+        for info in all_info:
+            # Chuẩn bị thông tin bệnh nhân và lấy entryId
+            information_data, information_data["entryId"] = prepare_information_data(row, info)
+
+            # Cập nhật thông tin bệnh nhân
+            result_api = update_information_patient(all_info, information_data)
+            return result_api
+
+
+def process_examination_services(file_path):
+    from Khám_bệnh_CDDV.GET import get_all_info, get_data_by_entry_id
+    from Khám_bệnh_CDDV.PUT import prepare_information_data, update_information_patient
+    sheet_name = "Data"
+    check_sheet_name = "Check"
+    columns_to_copy = ["MedServiceId", "PriceId.1", "Qty", "Price.1", "ServiceCode", "ServiceName", "CreateById"]
+
+    # Đọc dữ liệu gốc từ tệp Excel
+    excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
+
+    # Gọi hàm copy_sheet_values để sao chép các cột cần thiết sang sheet Verify
+    copy_sheet_values(file_path, sheet_name, check_sheet_name, columns_to_copy)
+
+    # Thông tin
+    entry_ids = [38392]
+
+    if len(entry_ids) != len(excel_data):
+        raise ValueError("Số lượng entry_ids và số lượng hàng trong additional_data phải bằng nhau.")
+
+    verify_data = pd.read_excel(file_path, sheet_name=check_sheet_name)
+
+    # Sử dụng một vòng lặp để xử lý từng hàng với từng entry_id tương ứng
+    for entry_id, (index, row) in zip(entry_ids, excel_data.iterrows()):
+        # Lấy tất cả thông tin bệnh nhân
+        all_info = get_all_info(entry_id)
+        print("all_info:", all_info)
+        if len(all_info) == 0:
+            print("No information about patients.")
+            return []
+
+        frVisitEntryIds = []
+        all_datas = []
+
+        for info in all_info:
+            verify_row = verify_data.iloc[index]
+            # Chuẩn bị thông tin bệnh nhân và lấy entryId
+            information_data, information_data["entryId"] = prepare_information_data(row, info)
+
+            # Cập nhật thông tin bệnh nhân
+            update_information_patient(all_info, information_data)
+
+            # Lấy dữ liệu theo entryId
+            entry_data = get_data_by_entry_id(information_data["entryId"])
+
+            # Bắt đầu chỉ định dịch vụ
+            all_infoa = start_service_designation(entry_data)
+
+            # Tạo chỉ định dịch vụ và lấy frVisitEntryId
+            service_data = data_of_create_service_designation(row, all_infoa, all_info)
+
+            result = create_service_designation(service_data, verify_row)
+
+            if result is None:  # Check if response_data is None, indicating failure
+                response_data, frVisitEntryId, result = None, None, "Failed"
+            else:
+                response_data, frVisitEntryId, result = result
+            # Thêm frVisitEntryId vào danh sách
             frVisitEntryIds.append(frVisitEntryId)
             all_datas.append(response_data)
-            print("frVisitEntryIds1:", frVisitEntryIds)
-            print("all_datas1:", all_datas)
-        return frVisitEntryIds, all_datas
 
+            print("frVisitEntryIds:", frVisitEntryIds)
+            print("all_datas:", all_datas)
+            return frVisitEntryIds, all_datas
