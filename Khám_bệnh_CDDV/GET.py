@@ -1,7 +1,7 @@
 import datetime
 import requests
 import json
-from Cấu_hình.Setup import base_url, auth_token
+from Cấu_hình.Setup import base_url, auth_token, base_url_2, auth_token_2
 
 
 # Lấy ngày tháng từ hàm GET ở file Tiếp nhận
@@ -58,8 +58,8 @@ def check_patient_in_room():
 # Hiển thị entry_visit
 def check_visit_enty(entry_id):
     try:
-        url = f"{base_url}/pms/VisitEntries/{entry_id}"
-        headers = {"Authorization": auth_token}
+        url = f"{base_url_2}/VisitEntries/{entry_id}"
+        headers = {"Authorization": auth_token_2}
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         visit_id = response.json()["visitId"]
@@ -75,9 +75,9 @@ def check_visit_enty(entry_id):
 
 # Lấy thông tin bệnh nhân GetDeleted
 def check_information_patient_initial(entry_id):
-    visit_ids = check_visit_enty(entry_id)
+    [visit_id] = check_visit_enty(entry_id)
     visit_idas = []
-    for visit_id in visit_ids:
+    for visit_id in [visit_id]:
         url = f"{base_url}/pms/Visits/Id/{visit_id}?isGetDeleted=False"
         headers = {"Authorization": auth_token}
         try:

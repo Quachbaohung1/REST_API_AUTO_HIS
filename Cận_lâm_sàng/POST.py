@@ -1,28 +1,14 @@
 import requests
 import pandas as pd
 from copy import deepcopy
-
-# Base url
-base_url = "http://115.79.31.186:1096"
-
-# Auth token
-auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
+from Cấu_hình.Setup import base_url_4, auth_token_4, base_url_6, auth_token_6, base_url_2, auth_token_2
 
 
 # Tạo thông tin dịch vụ
-def create_patient_service():
-    from Cận_lâm_sàng.GET import get_info_patient
-    labEx_ids_and_patient_ids = get_info_patient()
-    labEx_ids = [item["labExId"] for item in labEx_ids_and_patient_ids]
-
-    # Kiểm tra xem danh sách labEx_ids có phần tử không
-    if not labEx_ids:
-        print("No labExId available.")
-        return []
-
+def create_patient_service(labEx_ids):
     # Tạo URL và headers cho request POST
-    url = f"{base_url}/cis/LabExamItems/LabExamIds?ExcludedAttribute=&serviceTypeL0=&isLoadDelete=False"
-    headers = {"Authorization": auth_token}
+    url = f"{base_url_4}/LabExamItems/LabExamIds?ExcludedAttribute=&serviceTypeL0=&isLoadDelete=False"
+    headers = {"Authorization": auth_token_4}
 
     # Tạo data từ danh sách labEx_ids
     data = labEx_ids
@@ -51,7 +37,7 @@ def create_patient_service():
             print("Invalid response format")
 
         print("exItem_ids:", exItem_ids)
-        return exItem_ids
+        return response_data, exItem_ids
 
     except requests.RequestException as e:
         print(f"Request failed: {e}")
@@ -59,28 +45,20 @@ def create_patient_service():
 
 
 # Tạo bill
-def create_bill():
-    exItem_ids = create_patient_service()
-    url = f"{base_url}/finance/BillLabExams/ExItemIds"
-    headers = {"Authorization": auth_token}
+def create_bill(exItem_ids):
+    url = f"{base_url_6}/BillLabExams/ExItemIds"
+    headers = {"Authorization": auth_token_6}
     data = exItem_ids
     response = requests.post(url, json=data, headers=headers)
     response.raise_for_status()
+    response_data = response.json()
+    return response_data
 
 
-def create_information_patient():
-    from Cận_lâm_sàng.GET import get_info_patient
-    labEx_ids_and_patient_ids = get_info_patient()
-    patient_ids = [item["patientId"] for item in labEx_ids_and_patient_ids]
-
-    # Kiểm tra xem danh sách patient_ids có phần tử không
-    if not patient_ids:
-        print("No patientId available.")
-        return []
-
+def create_information_patient(patient_ids):
     # Tạo URL và headers cho request POST
-    url = f"{base_url}/pms/Patients/PatientIds"
-    headers = {"Authorization": auth_token}
+    url = f"{base_url_2}/Patients/PatientIds"
+    headers = {"Authorization": auth_token_2}
     # Tạo data từ danh sách labEx_ids
     data = patient_ids
     response = requests.post(url, json=data, headers=headers)
@@ -91,30 +69,28 @@ def create_information_patient():
 
 
 def create_visitIds(entry_ids):
-    from Cận_lâm_sàng.GET import get_information_patient
-    EntryIds = get_information_patient(entry_ids)
-    url = f"{base_url}/cis/TxVisits/EntryIds"
-    headers = {"Authorization": auth_token}
+    url = f"{base_url_4}/TxVisits/EntryIds"
+    headers = {"Authorization": auth_token_4}
     # Tạo data từ danh sách labEx_ids
-    data = EntryIds
+    data = [entry_ids]
     response = requests.post(url, json=data, headers=headers)
     response.raise_for_status()
     # Xử lý response data
     response_data = response.json()
     print("response_data:", response_data)
     # Trích xuất txVisitId từ response_data nếu có
-    txVisitIds = []
+    txVisit_Ids = []
     for item in response_data:
         if "txVisitId" in item:
-            txVisitIds.append(item["txVisitId"])
+            txVisit_Ids.append(item["txVisitId"])
 
-    return txVisitIds
+    return txVisit_Ids
 
 
 def create_loadTxVisitIds(entry_ids):
     txVisitIds = create_visitIds(entry_ids)
-    url = f"{base_url}/cis/TxVisitDX/LoadTxVisitIds"
-    headers = {"Authorization": auth_token}
+    url = f"{base_url_4}/TxVisitDX/LoadTxVisitIds"
+    headers = {"Authorization": auth_token_4}
     # Tạo data từ danh sách labEx_ids
     data = txVisitIds
     response = requests.post(url, json=data, headers=headers)
@@ -162,3 +138,6 @@ def process_CLS():
     for _ in range(num_records_to_add):
         for index, row in additional_data.iterrows():
             update_CLS_patient_from_excel(row)
+
+
+process_CLS()

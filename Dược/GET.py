@@ -86,14 +86,24 @@ def get_info_visit(patient_id):
 
 
 # Lấy check tồn kho
-def get_store():
+def get_store(itemIds):
     try:
-        url = f"{base_url}/ims/InvNowAvailables/36?invSource=&itemIds=4"
+        item_ids_str = "%2C".join(map(str, itemIds))
+        url = f"{base_url}/ims/InvNowAvailables/36?invSource=&itemIds={item_ids_str}"
         headers = {"Authorization": auth_token}
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         response_data = response.json()
-        return response_data
+        first_prices = []
+        invSources = []
+        for item in response_data:
+            first_price = item.get("firstPrice", None)
+            invSource = item.get("invSource", None)
+            if first_price is not None:
+                first_prices.append(first_price)
+            if invSource is not None:
+                invSources.append(invSource)
+        return response_data, first_prices, invSources
     except requests.RequestException as e:
         print(f"Request failed: {e}")
         return []
@@ -128,11 +138,70 @@ def choose_recall(voucherNo):
                         "txVisitId": txVisitId,
                         "InvSource": InvSource,
                         "createById": createById,
-
                     })
         else:
             print("response_data is not a list")
         return response_data, voucherIds, recall_details, StoreIds
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Failed to decode JSON: {e}")
+        return []
+
+
+# Chọn thuốc để đề nghị ( kho chẵn thuốc là 24)
+def choose_medicine_to_recommend(item_ids):
+    try:
+        item_ids_str = "%2C".join(map(str, item_ids))
+        url = f"{base_url}/ims/InvNowAvailables/24?invSource=&itemIds={item_ids_str}"
+        headers = {"Authorization": auth_token}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        response_data = response.json()
+        StoreIds = []
+        if isinstance(response_data, list):
+            for item in response_data:
+                storeId = item.get("storeId", None)
+                if storeId is not None:
+                    StoreIds.append(storeId)
+        else:
+            print("response_data is not a list")
+        return response_data, StoreIds
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Failed to decode JSON: {e}")
+        return []
+
+
+# Lấy thông tin voucher
+def Vouchers(voucherId):
+    try:
+        url = f"{base_url}/ims/Vouchers/id/{voucherId}"
+        headers = {"Authorization": auth_token}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        response_data = response.json()
+        return response_data
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Failed to decode JSON: {e}")
+        return []
+
+
+# Lấy mã xuất khác (xuất thanh lý)
+def liquidation_export():
+    try:
+        url = f"{base_url}/ims/Vouchers/code/NT.OSY.24.07.XXXX"
+        headers = {"Authorization": auth_token}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        response_data = response.json()
+        return response_data
     except requests.RequestException as e:
         print(f"Request failed: {e}")
         return []

@@ -5,35 +5,29 @@ import datetime
 import re
 from copy import deepcopy
 from Tiếp_nhận import GET
-from Cấu_hình.Setup import base_url, auth_token
-
-# Base url
-base_url = base_url
-
-
-# Auth token
-auth_token = auth_token
+from Cấu_hình.Setup import base_url_2, auth_token_2
 
 
 # POST request
 def create_patient(data, verify_data):
-    url = f"{base_url}/pms/Patients"
-    headers = {"Authorization": auth_token}
+    url = f"{base_url_2}/Patients"
+    headers = {"Authorization": auth_token_2}
     try:
         response = requests.post(url, json=data, headers=headers)
         response.raise_for_status()
         response_data = response.json()
         patient_id = response_data.get("patientId")
+        patientCode = response_data.get("patientCode")
         result = compare_data(response_data, verify_data)
-        return patient_id, result
+        return patient_id, patientCode, result
     except requests.exceptions.RequestException as e:
         # Log the error for debugging purposes
         print(f"\nAn error occurred during patient creation: {e}")
 
 
 def create_insurance(data, dob, verify_data):
-    url = f"{base_url}/pms/PatientInsurances/?dateOfBirth={dob}"
-    headers = {"Authorization": auth_token}
+    url = f"{base_url_2}/PatientInsurances/?dateOfBirth={dob}"
+    headers = {"Authorization": auth_token_2}
     try:
         response = requests.post(url, json=data, headers=headers)
         response.raise_for_status()
@@ -47,20 +41,21 @@ def create_insurance(data, dob, verify_data):
 
 
 def create_visit(data, visit_on, verify_data):
-    url = f"{base_url}/pms/Visits/?visitOn={visit_on}&noSetProcessingPending=False&isPassCreatePaymentTicket=False&isPassVisitOnSameDay=False"
-    headers = {"Authorization": auth_token}
+    url = f"{base_url_2}/Visits/?visitOn={visit_on}&noSetProcessingPending=False&isPassCreatePaymentTicket=False&isPassVisitOnSameDay=False"
+    headers = {"Authorization": auth_token_2}
     try:
         response = requests.post(url, json=data, headers=headers)
         response.raise_for_status()
         response_data = response.json()
         result = compare_data(response_data, verify_data)
         # Kiểm tra và trích xuất entryId từ phản hồi JSON
+        patientId = response_data["patientId"]
         entry_id = None
         if response_data and "entry" in response_data and "entryId" in response_data["entry"]:
             entry_id = response_data["entry"]["entryId"]
 
         # Return các giá trị
-        return response_data, entry_id, result
+        return response_data, entry_id, patientId, result
     except requests.exceptions.RequestException as e:
         # Log the error for debugging purposes
         print(f"\nAn error occurred during insurance creation: {e}")
@@ -68,13 +63,25 @@ def create_visit(data, visit_on, verify_data):
 
 def create_patient_from_excel(row):
     full_name = None if pd.isna(row['LastName']) or pd.isna(row['FirstName']) else str(row['LastName']) + " " + str(row['FirstName'])
-    IdCardNo = "0" + str(int(row['IdCardNo']))
-    MobileNo = "0" + str(int(row['MobileNo']))
-    RelativePhone = "0" + str(int(row['RelativePhone']))
+    if pd.isna(row['IdCardNo']):
+        IdCardNo = None
+    else:
+        IdCardNo = "0" + str(int(row['IdCardNo']))
+
+    if pd.isna(row['MobileNo']):
+        MobileNo = None
+    else:
+        MobileNo = "0" + str(int(row['MobileNo']))
+
+    if pd.isna(row['RelativePhone']):
+        RelativePhone = None
+    else:
+        RelativePhone = "0" + str(int(row['RelativePhone']))
+
     if pd.isna(row['FirstName']):
         FirstName = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
     else:
-        FirstName = str(int(row['FirstName']))
+        FirstName = str(row['FirstName'])
 
     if pd.isna(row['LastName']):
         LastName = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
@@ -96,32 +103,60 @@ def create_patient_from_excel(row):
     else:
         Address = str(row['Address'])
 
-    Ethnic = "0" + str(int(row['Ethnic']))
+    if pd.isna(row['City']):
+        City = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        City = str(int(row['City']))
+
+    if pd.isna(row['Gender']):
+        Gender = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        Gender = int(row['Gender'])
+
+    if pd.isna(row['District']):
+        District = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        District = str(int(row['District']))
+
+    if pd.isna(row['Ward']):
+        Ward = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        Ward = str(int(row['Ward']))
+
+    if pd.isna(row['Occupation']):
+        Occupation = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        Occupation = int(row['Occupation'])
+
+    if pd.isna(row['Ethnic']):
+        Ethnic = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        Ethnic = "0" + str(int(row['Ethnic']))
     patient_data = {
         "PatientCode": "SimulatedCode",
         "FullPatientCode": "SimulatedCode",
         "FirstName": FirstName,
         "LastName": LastName,
         "Dob": str(row['Dob']),
-        "Gender": int(row['Gender']),
+        "Gender": Gender,
         "IdCardNo": IdCardNo,
         "MobileNo": MobileNo,
         "Nationality": str(row['Nationality']),
         "Ethnic": Ethnic,
         "Country": str(row['Country']),
-        "City": str(int(row['City'])),
-        "District": str(int(row['District'])),
-        "Ward": str(int(row['Ward'])),
+        "City": City,
+        "District": District,
+        "Ward": Ward,
         "Address": Address,
-        "Occupation": row['Occupation'],
+        "Occupation": Occupation,
         "EmployerName": str(row['EmployerName']),
         "EmployerAddr": str(row['EmployerAddr']),
         "TaxCode": tax_code,
         "RelativeName": str(row['RelativeName']),
         "RelativeAddr": str(row['RelativeAddr']),
         "RelativePhone": RelativePhone,
-        "RelativeType": row['RelativeType'],
-        "Status": row['Status'],
+        "RelativeType": int(row['RelativeType']),
+        "Status": int(row['Status']),
         "FullName": full_name,
         "FullAddress": FullAddress
     }
@@ -183,7 +218,7 @@ def create_insurance_from_excel(row, patient_id):
         "District": str(int(row['District'])),
         "Ward": str(int(row['Ward'])),
         "InsZone": InsZone,
-        "Status": row['Status'],
+        "Status": int(row['Status']),
         "Attribute": int(row['Attribute']),
         "Provider": provider,
         "IsDisabled": str(row['IsDisabled']),
@@ -194,7 +229,7 @@ def create_insurance_from_excel(row, patient_id):
 
 
 def create_visit_from_excel(row, patient_id):
-    full_name = None if pd.isna(row['LastName']) or pd.isna(row['FirstName']) else row['LastName'] + " " + str(int(row['FirstName']))
+    full_name = None if pd.isna(row['LastName']) or pd.isna(row['FirstName']) else row['LastName'] + " " + str(row['FirstName'])
     Ethnic = "0" + str(int(row['Ethnic']))
 
     visit_on = str(GET.CurrentServerDateTime())
@@ -217,6 +252,51 @@ def create_visit_from_excel(row, patient_id):
     else:
         MedServiceId = int(row['MedServiceId'])
     visit_on = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    if pd.isna(row['MedProviderId']):
+        MedProviderId = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        MedProviderId = int(row['MedProviderId'])
+
+    if pd.isna(row['Attribute.2']):
+        Attribute_2 = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        Attribute_2 = int(row['Attribute.2'])
+
+    if pd.isna(row['Attribute.1']):
+        Attribute_1 = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        Attribute_1 = int(row['Attribute.1'])
+
+    if pd.isna(row['FollowupCount']):
+        FollowupCount = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        FollowupCount = int(row['FollowupCount'])
+
+    if pd.isna(row['RxType']):
+        RxType = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        RxType = int(row['RxType'])
+
+    if pd.isna(row['RxReason']):
+        RxReason = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        RxReason = int(row['RxReason'])
+
+    if pd.isna(row['TxResult']):
+        TxResult = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        TxResult = int(row['TxResult'])
+
+    if pd.isna(row['ApptDate']):
+        ApptDate = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        ApptDate = str(row['ApptDate'])
+
+    if pd.isna(row['ContentHash1']):
+        ContentHash1 = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        ContentHash1 = str(row['ContentHash1'])
+
     visit_data = {
         "ReceiveType": int(row['ReceiveType']),
         "RcvState": int(row['RcvState']),
@@ -232,22 +312,25 @@ def create_visit_from_excel(row, patient_id):
         "PtWard": str(int(row['Ward'])),
         "PtEthnic": Ethnic,
         "PtNationality": str(row['Nationality']),
-        "PtOccupation": row['Occupation'],
+        "PtOccupation": int(row['Occupation']),
         "InsCardNo": str(row['InsCardNo']),
         "InsBenefitType": int(row['InsBenefitType']),
         "InsBenefitRatio": int(row['InsBenefitRatio']),
-        "Attribute": int(row['Attribute']),
+        "Attribute": Attribute_2,
         "FileStoreNo": "",
         "CreateById": int(row['CreateById']),
-        "Status": row['Status'],
+        "Status": int(row['Status']),
         "InsCheckedMessage": str(row['InsCheckedMessage']),
         "InsCheckedStatus": InsCheckedStatus,
         "Entry": {
+            "Attribute": Attribute_1,
             "MedServiceId": MedServiceId,
             "WardUnitId": WardUnitId,
             "OnDate": visit_on_value_trimmed1,
+            "ApptDate": ApptDate,
+            "FollowupCount": FollowupCount,
             "CreateById": int(row['CreateById']),
-            "Status": row['Status'],
+            "Status": int(row['Status']),
             "InsBenefitType": int(row['InsBenefitType']),
             "InsBenefitRatio": int(row['InsBenefitRatio']),
             "PriceId": int(row['PriceId']),
@@ -257,11 +340,32 @@ def create_visit_from_excel(row, patient_id):
             "CreatedBy": None,
             "ContentHash": row['ContentHash']
         },
+        "RxCert": {
+            "ProviderId": MedProviderId,
+            "InsCardNo": str(row['InsCardNo']),
+            "CertDate": str(row['CertDate']),
+            "RxType": RxType,
+            "RxReason": RxReason,
+            "DxICD": str(row['DxICD']),
+            "DxSubICD": str(row['DxSubICD']),
+            "DxText": str(row['DxText']),
+            "TxResult": TxResult,
+            "CreateById": int(row['CreateById']),
+            "CertNo": str(row['CertNo']),
+            "CertStartOn": str(row['CertStartOn']),
+            "FromDate": str(row['FromDate']),
+            "ToDate": str(row['ToDate'])
+        },
+        "RxCertInICD": [
+            {
+                "ICDCode": str(row['ICDCode'])
+            }
+        ],
         "FullPatientCode": None,
         "InsBenefitTypeName": None,
         "WardUnitNames": None,
         "CreateByStaffName": None,
-        "ContentHash": row['ContentHash1'],
+        "ContentHash": ContentHash1,
         "LastUpdateByStaffName": None,
         "ModifiedOn": None
     }
@@ -276,7 +380,37 @@ def create_visit_from_excel(row, patient_id):
         del visit_data["InsCheckedMessage"]
         del visit_data["InsCheckedStatus"]
         del visit_data["InsCardNo"]
+
+    # Kiểm tra xem loại bảo hiểm có phải là BHYT hay không
+    if str(row['CertNo']) == "nan":
+        # Nếu là BHYT, hiển thị "InsCheckedMessage" và "InsCheckedStatus"
+        del visit_data["RxCert"]
+        del visit_data["RxCertInICD"]
+
+    if ApptDate is None:
+        del visit_data["Entry"]["ApptDate"]
+        del visit_data["Entry"]["FollowupCount"]
+        del visit_data["Entry"]["Attribute"]
+
+    print("visit_data: ", visit_data)
+    print("visit_on: ", visit_on)
     return visit_data, visit_on
+
+
+def create_RxCert(rxCertId, verify_data):
+    url = f"{base_url_2}/RxCerts/Ids"
+    headers = {"Authorization": auth_token_2}
+    try:
+        data = rxCertId
+        response = requests.post(url, json=data, headers=headers)
+        response.raise_for_status()
+        response_data = response.json()
+        result = compare_data(response_data, verify_data)
+        # Return các giá trị
+        return response_data, result
+    except requests.exceptions.RequestException as e:
+        # Log the error for debugging purposes
+        print(f"\nAn error occurred during insurance creation: {e}")
 
 
 def extract_numeric_suffix(s):
@@ -375,49 +509,39 @@ def compare_data(json_data, excel_row):
     return "Passed"
 
 
-def process_create_patient_from_excel(file_path):
-    sheet_name = "Data"
-    check_sheet_name = "Check"
-    columns_to_copy = ["FirstName", "LastName", "InsCardNo", "CreateById", "InsBenefitRatio", "InsBenefitType"]
+def process_create_patient_from_excel(test_data, testcase_id):
+    test_data = test_data[test_data['TestCaseId'] == testcase_id]
 
-    # Đọc dữ liệu từ tệp Excel
-    excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
+    # Lấy dữ liệu từ test_data
+    excel_data = test_data
 
-    # Gọi hàm copy_sheet_values để sao chép các cột cần thiết sang sheet Verify
-    copy_sheet_values(file_path, sheet_name, check_sheet_name, columns_to_copy)
-
-    verify_data = pd.read_excel(file_path, sheet_name=check_sheet_name)
+    verify_data = test_data
 
     for index, row in excel_data.iterrows():
-        verify_row = verify_data.iloc[index]
+        verify_row = verify_data
         patient_data = create_patient_from_excel(row)
-        abc = create_patient(patient_data, verify_row)
-        if abc is None:  # Check if response_data is None, indicating failure
-            patient_id, patient_result = None, "Failed"
+        patient_result = create_patient(patient_data, verify_row)
+        if patient_result is None:
+            patient_id, patientCode, result = None, None, "Failed"
         else:
-            patient_id, patient_result = abc
-        print(f"\nCreate patient result {index}: {patient_result}")
-        return abc
+            patient_id, patientCode, result = patient_result
+        print(f"\nKết quả tạo bệnh nhân {index}: {result}")
+    return patient_result
 
 
-def process_create_insurance_from_excel(file_path):
-    sheet_name = "Data"
-    check_sheet_name = "Check"
-    columns_to_copy = ["FirstName", "LastName", "InsCardNo", "CreateById", "InsBenefitRatio", "InsBenefitType"]
+def process_create_insurance_from_excel(test_data, testcase_id):
+    test_data = test_data[test_data['TestCaseId'] == testcase_id]
 
-    # Đọc dữ liệu từ tệp Excel
-    excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
+    # Lấy dữ liệu từ test_data
+    excel_data = test_data
 
-    # Gọi hàm copy_sheet_values để sao chép các cột cần thiết sang sheet Verify
-    copy_sheet_values(file_path, sheet_name, check_sheet_name, columns_to_copy)
-
-    verify_data = pd.read_excel(file_path, sheet_name=check_sheet_name)
+    verify_data = test_data
 
     for index, row in excel_data.iterrows():
-        verify_row = verify_data.iloc[index]
+        verify_row = verify_data
         patient_data = create_patient_from_excel(row)
-        patient_id, patient_result = create_patient(patient_data, verify_row)
-        print(f"\nCreate patient result {index}: {patient_result}")
+        patient_id, patientCode, result = create_patient(patient_data, verify_row)
+        print(f"\nCreate patient result {index}: {result}")
 
         if int(row["InsBenefitType"]) == 2:
             insurance_data, dob = create_insurance_from_excel(row, patient_id)
@@ -430,25 +554,22 @@ def process_create_insurance_from_excel(file_path):
             return check
 
 
-def process_patient_from_excel(file_path):
-    sheet_name = "Data"
-    check_sheet_name = "Check"
-    columns_to_copy = ["FirstName", "LastName", "InsCardNo", "CreateById", "InsBenefitRatio", "InsBenefitType"]
+def process_patient_from_excel(test_data, testcase_id):
+    from Tiếp_nhận.GET import Load_VisitOn
+    test_data = test_data[test_data['TestCaseId'] == testcase_id]
 
-    # Đọc dữ liệu từ tệp Excel
-    excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
+    # Lấy dữ liệu từ test_data
+    excel_data = test_data
 
-    # Gọi hàm copy_sheet_values để sao chép các cột cần thiết sang sheet Verify
-    copy_sheet_values(file_path, sheet_name, check_sheet_name, columns_to_copy)
-
-    verify_data = pd.read_excel(file_path, sheet_name=check_sheet_name)
+    verify_data = test_data
 
     entry_ids = []  # Danh sách để lưu các entry_id
+    patientCodes = []
     for index, row in excel_data.iterrows():
-        verify_row = verify_data.iloc[index]
+        verify_row = verify_data
         patient_data = create_patient_from_excel(row)
-        patient_id, patient_result = create_patient(patient_data, verify_row)
-        print(f"\nCreate patient result {index}: {patient_result}")
+        patient_id, patientCode, result = create_patient(patient_data, verify_row)
+        print(f"\nCreate patient result {index}: {result}")
 
         if int(row["InsBenefitType"]) == 2:
             insurance_data, dob = create_insurance_from_excel(row, patient_id)
@@ -458,13 +579,18 @@ def process_patient_from_excel(file_path):
         visit_data, visit_on = create_visit_from_excel(row, patient_id)
         result = create_visit(visit_data, visit_on, verify_data)
         if result is None:  # Check if response_data is None, indicating failure
-            response_data, entry_id, visit_result = None, None, "Failed"
+            response_data, entry_id, patientId, visit_result = None, None, None, "Failed"
         else:
-            response_data, entry_id, visit_result = result
+            response_data, entry_id, patientId, visit_result = result
         print(f"Create visit result {index}: {result}")
         entry_ids.append(entry_id)  # Lưu entry_id vào danh sách
-    print("entry_ids", entry_ids)
-    return entry_ids
+        patientCodes.append(patientCode)  # Lưu patientCode vào danh sách
+        if row["CertNo"] is not None and visit_result == 204:
+            rxCertId = Load_VisitOn(patientId)
+            response_data = create_RxCert(rxCertId, verify_data)
+
+        print("entry_ids = ", entry_ids)
+    return entry_ids, patientCodes, response_data  # Trả về danh sách các entry_id
 
 
 def process_generate_patient_from_excel(file_path):
@@ -476,7 +602,7 @@ def process_generate_patient_from_excel(file_path):
     excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
 
     # Tạo dữ liệu bổ sung và ghi vào file Excel
-    num_records_to_add = 2  # Số dòng dữ liệu bổ sung
+    num_records_to_add = 10  # Số dòng dữ liệu bổ sung
     additional_data = generate_additional_data(excel_data.tail(1), num_records_to_add)
     write_data_to_excel(file_path, sheet_name, additional_data)
 
@@ -490,10 +616,11 @@ def process_generate_patient_from_excel(file_path):
     verify_data = pd.read_excel(file_path, sheet_name=verify_sheet_name)
 
     entry_ids = []  # Danh sách để lưu các entry_id
+    patientCodes = []
     for index, row in additional_data.iterrows():
         verify_row = verify_data.iloc[index]
         patient_data = create_patient_from_excel(row)
-        patient_id, patient_result = create_patient(patient_data, verify_row)
+        patient_id, patientCode, patient_result = create_patient(patient_data, verify_row)
         print(f"\nCreate patient result {index}: {patient_result}")
 
         if int(row["InsBenefitType"]) == 2:
@@ -502,12 +629,17 @@ def process_generate_patient_from_excel(file_path):
             print(f"Create insurance result {index}: {insurance_result}")
 
         visit_data, visit_on = create_visit_from_excel(row, patient_id)
-        response_data, entry_id, visit_result = create_visit(visit_data, visit_on, verify_data)
+        response_data, entry_id, patientId, visit_result = create_visit(visit_data, visit_on, verify_data)
         print(f"Create visit result {index}: {visit_result}")
         entry_ids.append(entry_id)  # Lưu entry_id vào danh sách
+        patientCodes.append(patientCode)    # Lưu patientCode vào danh sách
 
-    print("entry_ids", entry_ids)
-    return entry_ids  # Trả về danh sách các entry_id
+        # if row["CertNo"] is not None:
+        #     rxCertId = Load_VisitOn(patientId)
+        #     response_data = create_RxCert(rxCertId, verify_data)
+
+        print("entry_ids = ", entry_ids)
+    return entry_ids, patientCodes, response_data  # Trả về danh sách các entry_id
 
 
 def process_generate_sum_patient_from_excel(file_path):
@@ -519,7 +651,7 @@ def process_generate_sum_patient_from_excel(file_path):
     excel_data = pd.read_excel(file_path, sheet_name=sheet_name)
 
     # Tạo dữ liệu bổ sung và ghi vào file Excel
-    num_records_to_add = 2  # Số dòng dữ liệu bổ sung
+    num_records_to_add = 1000  # Số dòng dữ liệu bổ sung
     additional_data = generate_sum_additional_data(excel_data.tail(2), num_records_to_add)
     write_data_to_excel(file_path, sheet_name, additional_data)
 
@@ -533,10 +665,11 @@ def process_generate_sum_patient_from_excel(file_path):
     verify_data = pd.read_excel(file_path, sheet_name=verify_sheet_name)
 
     entry_ids = []  # Danh sách để lưu các entry_id
+    patientCodes = []
     for index, row in additional_data.iterrows():
         verify_row = verify_data.iloc[index]
         patient_data = create_patient_from_excel(row)
-        patient_id, patient_result = create_patient(patient_data, verify_row)
+        patient_id, patientCode, patient_result = create_patient(patient_data, verify_row)
         print(f"\nCreate patient result {index}: {patient_result}")
 
         if int(row["InsBenefitType"]) == 2:
@@ -545,9 +678,10 @@ def process_generate_sum_patient_from_excel(file_path):
             print(f"Create insurance result {index}: {insurance_result}")
 
         visit_data, visit_on = create_visit_from_excel(row, patient_id)
-        response_data, entry_id, visit_result = create_visit(visit_data, visit_on, verify_data)
+        response_data, entry_id, patientId, visit_result = create_visit(visit_data, visit_on, verify_data)
         print(f"Create visit result {index}: {visit_result}")
         entry_ids.append(entry_id)  # Lưu entry_id vào danh sách
+        patientCodes.append(patientCode)  # Lưu patientCode vào danh sách
 
-    print("entry_ids", entry_ids)
-    return entry_ids  # Trả về danh sách các entry_id
+    print("entry_ids = ", entry_ids)
+    return entry_ids, patientCodes, response_data  # Trả về danh sách các entry_id

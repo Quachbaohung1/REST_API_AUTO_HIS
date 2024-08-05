@@ -1,0 +1,4 @@
+INFO:root:Test "Running test for D://HIS api automation/DataTest/Ti\u1ebfp nh\u1eadn/TC_44_Test_1.xlsx" - Result: Passed
+INFO:root:Test "Running test for D://HIS api automation/DataTest/Ti\u1ebfp nh\u1eadn/TC_44_Test_3.xlsx" - Result: Passed
+INFO:root:Test "Running test for D://HIS api automation/DataTest/Ti\u1ebfp nh\u1eadn/TC_44_Test_2.xlsx" - Result: Passed
+INFO:root:Test "Running test for D://HIS api automation/DataTest/Ti\u1ebfp nh\u1eadn/TC_44_Test.xlsx" - Result: Passed

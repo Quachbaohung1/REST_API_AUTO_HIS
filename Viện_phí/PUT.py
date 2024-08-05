@@ -1,10 +1,6 @@
 import requests
 import pandas as pd
-
-# Base url
-base_url = "http://115.79.31.186:1096"
-# Auth token
-auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
+from Cấu_hình.Setup import base_url_2, auth_token_2, base_url_6, auth_token_6
 
 
 def clean_data(value):
@@ -12,8 +8,8 @@ def clean_data(value):
 
 
 def update_information_patient(entryId, data):
-    headers = {"Authorization": auth_token}
-    url = f"{base_url}/pms/VisitEntries/{entryId}?forceNull=True&ptFullAddress=5%2F49+Ntl%2C+Ph%C6%B0%E1%BB%9Dng+07%2C+Qu%E1%BA%ADn+B%C3%ACnh+Th%E1%BA%A1nh%2C+Th%C3%A0nh+ph%E1%BB%91+H%E1%BB%93+Ch%C3%AD+Minh&isPassMedAIValid=&isPassMedAIValidOtherPx=False&isPassInteraction=False&isRemoveAllConsulation=True&isUpdateEntryValOnly=False&isBackupStatus=True"
+    headers = {"Authorization": auth_token_2}
+    url = f"{base_url_2}/VisitEntries/{entryId}?forceNull=True&ptFullAddress=5%2F49+Ntl%2C+Ph%C6%B0%E1%BB%9Dng+07%2C+Qu%E1%BA%ADn+B%C3%ACnh+Th%E1%BA%A1nh%2C+Th%C3%A0nh+ph%E1%BB%91+H%E1%BB%93+Ch%C3%AD+Minh&isPassMedAIValid=&isPassMedAIValidOtherPx=False&isPassInteraction=False&isRemoveAllConsulation=True&isUpdateEntryValOnly=False&isBackupStatus=True"
     response = requests.put(url, json=data, headers=headers)
     response.raise_for_status()
 
@@ -84,8 +80,19 @@ def prepare_information_data(row, info):
 
 
 def closing_costs(visitId):
-    headers = {"Authorization": auth_token}
-    url = f"{base_url}/pms/Visits/ConfirmCostAsync/{visitId}/True?insBenefitType=2"
+    headers = {"Authorization": auth_token_2}
+    url = f"{base_url_2}/Visits/ConfirmCostAsync/{visitId}/True?insBenefitType=2"
+    data = None
+    response = requests.put(url, json=data, headers=headers)
+    response.raise_for_status()
+    response_data = response.json()
+    return response_data
+
+
+# UpdateBenefitRatio
+def UpdateBenefitRatio(visitCode):
+    headers = {"Authorization": auth_token_6}
+    url = f"{base_url_6}/AdvancePayments/UpdateBenefitRatio?visitCode={visitCode}&medRecCode="
     data = None
     response = requests.put(url, json=data, headers=headers)
     response.raise_for_status()

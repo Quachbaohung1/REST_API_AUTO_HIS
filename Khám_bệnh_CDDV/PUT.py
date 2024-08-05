@@ -4,7 +4,7 @@ from Cấu_hình.Setup import base_url, auth_token
 
 
 def clean_data(value):
-    return str(value) if not pd.isna(value) else ''
+    return str(value) if not pd.isna(value) else None
 
 
 def update_information_patient(all_info, data):
@@ -32,20 +32,47 @@ def prepare_information_data(row, info):
     isPassOnWarning_excel = str(row['IsPassOnWarning'])
     # Chuyển đổi giá trị từ chuỗi sang Boolean
     isPassOnWarning = True if isPassOnWarning_excel.lower() == 'true' else False
+    OnDate = info["createOn"]
+    if pd.isna(row['DxByStaffId']):
+        DxByStaffId = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        DxByStaffId = int(row['DxByStaffId'])
+
+    if pd.isna(row["Height"]):
+        Height = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        Height = int(row["Height"])
+
+    if Height is None:
+        BMIValue = None
+    else:
+        Height_m = Height / 100
+        if Height_m == 0:  # Kiểm tra trường hợp Height_m bằng 0 để tránh chia cho 0
+            BMIValue = None
+        else:
+            BMIValue = round(float(row["Weight"]) / (Height_m * Height_m), 1)
+    BloodPressure = str(int(row["Systolic"])) + "/" + str(int(row["Diastolic"]))
+
+    if pd.isna(row["Weight"]):
+        Weight = None  # hoặc tax_code = 'null' nếu bạn muốn lưu giá trị 'null' (dạng chuỗi)
+    else:
+        Weight = float(row["Weight"])
+
     information_data = {
         "entryId": info["entryId"],
         "visitId": info["visitId"],
         "medServiceId": info["medServiceId"],
         "wardUnitId": info["wardUnitId"],
-        "onDate": info["createOn"],
+        "onDate": OnDate,
+        "FeverOn": clean_data(row["FeverOn"]),
         "dxSymptom": clean_data(row['DxSymptom']),
         "initialDxICD": clean_data(row['InitialDxICD']),
         "initialDxText": clean_data(row['InitialDxText']),
         "dxICD": clean_data(row['DxICD']),
         "dxText": clean_data(row['DxText']),
-        "dxByStaffId": int(row['DxByStaffId']),
-        "txInstruction": 8,
-        "createOn": info["createOn"],
+        "dxByStaffId": DxByStaffId,
+        "txInstruction": int(row["TxInstruction"]),
+        "createOn": OnDate,
         "createById": info["createById"],
         "status": info["status"],
         "insBenefitType": info['insBenefitType'],
@@ -56,8 +83,23 @@ def prepare_information_data(row, info):
         "medRcdNo": MedRcdNo,
         "createByWardUnitId": info["createByWardUnitId"],
         "visitDXList": [{"IcdCode": "A00", "ICDReason": "false"}, {"IcdCode": "A02.0", "ICDReason": "false"}],
-        "txVisit": {"createOn": info["createOn"], "createByStaffName": row['CreateByStaffName']},
+        "txVisit": {"createOn": str(row["CreateOn1"]), "createByStaffName": row['CreateByStaffName'], "OnDate": str(row["OnDate1"])},
         "pxItems": [],
+        "TxVisitPhysical": {
+            "Height": Height,
+            "Weight": Weight,
+            "Systolic": int(row["Systolic"]),
+            "Diastolic": int(row["Diastolic"]),
+            "HeartRate": int(row["HeartRate"]),
+            "Temperature": float(row["Temperature"]),
+            "SpO2": int(row["SpO2"]),
+            "RespirationRate": int(row["RespirationRate"]),
+            "Notes": clean_data(row["Notes"]),
+            "CheckOn": str(row["CreateOn1"]),
+            "ByStaffId": info["createById"],
+            "BMIValue": BMIValue,
+            "BloodPressure": str(BloodPressure)
+        },
         "service": {
             "serviceId": int(row['ServiceId']),
             "code": clean_data(row['Code']),
@@ -83,6 +125,8 @@ def prepare_information_data(row, info):
         "contentHash": clean_data(row['ContentHash']),
         "isPassOnWarning": isPassOnWarning
     }
+    if str(row['DxICD']) not in ["A97", "A97.1", "A97.2", "A97.0", "A97.9"]:
+        del information_data["FeverOn"]
     return information_data, information_data["entryId"]
 
 

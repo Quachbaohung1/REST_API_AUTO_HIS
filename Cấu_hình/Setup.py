@@ -10,6 +10,9 @@ base_url_3 = "http://192.168.110.8:1082"
 base_url_4 = "http://192.168.110.8:1084"
 # Môi trường Stagging .8 (port 1086 - dùng cho kê thuốc)
 base_url_5 = "http://192.168.110.8:1086"
+# Môi trường Stagging .8 (port 1087 - dùng cho viện phí)
+base_url_6 = "http://192.168.110.8:1087"
+
 
 # Môi trường stagging không dùng mạng nội bộ
 auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6Ijo6MSIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTUxODQ2NDIsImV4cCI6MTcxNTE4ODI0MiwiaWF0IjoxNzE1MTg0NjQyfQ.CihuC246iqFUos4MNZtNWs2q_SBOtmbXz4NRNuRQ4rg"
@@ -23,3 +26,5 @@ auth_token_3 = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6
 auth_token_4 = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6IjE5Mi4xNjguMTc5LjE0MiIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTgxNjUzMDUsImV4cCI6MTcxODE2ODkwNSwiaWF0IjoxNzE4MTY1MzA1fQ.erkY15J7xDKJq5JeHE4eMM7SU8QpBtKmgCS36IRQ9RY"
 # Môi trường Stagging .8 (port 1086 - dùng cho kê thuốc)
 auth_token_5 = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6IjE5Mi4xNjguMTc5LjE0MiIsIklzTG9jYWxJcCI6IlRydWUiLCJuYmYiOjE3MTgxNjUzMDUsImV4cCI6MTcxODE2ODkwNSwiaWF0IjoxNzE4MTY1MzA1fQ.erkY15J7xDKJq5JeHE4eMM7SU8QpBtKmgCS36IRQ9RY"
+# Môi trường Stagging .8 (port 1087 - dùng cho viện phí)
+auth_token_6 = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjM4MzkiLCJyb2xlIjoiQWRtaW4iLCJBY2NvdW50TmFtZSI6Imh1bmdxYiIsIkNsaWVudElwQWRkcmVzcyI6IjE5Mi4xNjguMzkuMzgiLCJJc0xvY2FsSXAiOiJUcnVlIiwibmJmIjoxNzIwNDEwNTg5LCJleHAiOjE3MjA0MTQxODksImlhdCI6MTcyMDQxMDU4OX0.xkHxmzva3S6lONbWitLGcWIf99ML01v4stK1uYm-Xfk"
